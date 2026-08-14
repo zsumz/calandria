@@ -12,6 +12,7 @@ extern crate alloc;
 
 pub mod action;
 pub mod clock;
+pub mod entropy;
 pub mod event;
 pub mod model;
 pub mod plan;
@@ -19,9 +20,11 @@ pub mod scheduler;
 pub mod script;
 pub mod simulation;
 pub mod timeline;
+pub mod trace;
 
 pub use action::{ActionId, ActionKey, ActionKind, ActionMeta, ActionRecord, ReadySet};
 pub use clock::{ClockError, VirtualClock};
+pub use entropy::{EntropySeed, EntropyStreamId, SplitMix64};
 pub use event::{Delivery, EventId, EventToken, TimelineId};
 pub(crate) use model::Routed;
 pub use model::{
@@ -29,7 +32,9 @@ pub use model::{
     SendFailure, Topology, TopologyError,
 };
 pub use plan::Planned;
-pub use scheduler::{Fifo, RoundRobin, Scheduler};
+pub use scheduler::{
+    Fifo, Replay, ReplayDivergence, ReplayPosition, RoundRobin, Scheduler, Seeded, SeededError,
+};
 pub use script::{
     ExactScript, Plan, ScriptBuildError, ScriptBuildFailure, ScriptFailure, ScriptLimits,
     ScriptStep,
@@ -40,3 +45,4 @@ pub use simulation::{
     SimulationPhase, SimulationSnapshot, SimulationView, Step, StepError,
 };
 pub use timeline::{ScheduleError, ScheduleFailure, Timeline, TimelineLimits, TimelineSnapshot};
+pub use trace::{Trace, TraceEntry, TraceError, TraceLimits, TraceSnapshot};

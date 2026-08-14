@@ -39,7 +39,7 @@ where
 
         let ready = ReadySet::new(&self.ready);
         let guard = PoisonGuard::new(&self.poisoned);
-        let choice = self.scheduler.choose(ready);
+        let choice = self.scheduler.choose(self.now(), ready);
         guard.disarm();
         let selected = match choice {
             Ok(selected) => selected,
@@ -117,6 +117,7 @@ where
                 self.fail();
                 return Err(StepError::Kernel(failure));
             }
+            self.validate_scheduler_finish()?;
             self.phase = SimulationPhase::Completed;
             return Ok(Step::Completed(self.snapshot()));
         }
@@ -177,6 +178,19 @@ where
         };
         self.next_action = raw.checked_add(1);
         Ok(ActionId::from_raw(raw))
+    }
+
+    fn validate_scheduler_finish(&mut self) -> StepGuardResult<M::Error, N::Error, S::Error> {
+        let guard = PoisonGuard::new(&self.poisoned);
+        let result = self.scheduler.finished();
+        guard.disarm();
+        match result {
+            Ok(()) => Ok(()),
+            Err(source) => {
+                self.fail();
+                Err(StepError::Scheduler(source))
+            }
+        }
     }
 }
 

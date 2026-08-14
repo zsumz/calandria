@@ -23,7 +23,7 @@ pub enum StepError<ModelError, MonitorError, SchedulerError> {
         /// Consumer monitor failure.
         source: MonitorError,
     },
-    /// Scheduler policy failed before model execution.
+    /// Scheduler policy failed during selection or replay validation.
     Scheduler(SchedulerError),
     /// Scheduler returned an action outside the supplied ready set.
     InvalidSelection(ActionKey),

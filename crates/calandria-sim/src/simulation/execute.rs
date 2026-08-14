@@ -149,6 +149,13 @@ where
         observations: Vec<M::Observation>,
     ) -> ActionResult<M::Observation, M::Error, N::Error, S::Error> {
         let record = ActionRecord::new(meta, turn, observations);
+        let guard = PoisonGuard::new(&self.poisoned);
+        let result = self.scheduler.committed(meta, turn);
+        guard.disarm();
+        if let Err(source) = result {
+            self.fail();
+            return Err(StepError::Scheduler(source));
+        }
         let snapshot = self.snapshot();
         let view = SimulationView::new(&self.model, &self.topology, &self.states, snapshot);
         let guard = PoisonGuard::new(&self.poisoned);
