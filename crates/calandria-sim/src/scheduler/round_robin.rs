@@ -2,6 +2,8 @@
 
 use core::convert::Infallible;
 
+use calandria::Moment;
+
 use crate::{ActionKey, DutyId, ReadySet, Scheduler};
 
 /// Rotates across owners while preserving canonical order within one owner.
@@ -25,7 +27,7 @@ impl RoundRobin {
 impl Scheduler for RoundRobin {
     type Error = Infallible;
 
-    fn choose(&mut self, ready: ReadySet<'_>) -> Result<ActionKey, Self::Error> {
+    fn choose(&mut self, _now: Moment, ready: ReadySet<'_>) -> Result<ActionKey, Self::Error> {
         let actions = ready.actions();
         let after = self.cursor.and_then(|cursor| {
             actions
