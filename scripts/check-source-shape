@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Enforce the repository's source-shape contract."""
+
+from __future__ import annotations
+
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+CRATES = ROOT / "crates"
+FAILURES: list[str] = []
+
+BANNED_PARTS = {"utils", "helpers", "common", "manager"}
+FACADE_NAMES = {"lib.rs", "mod.rs"}
+
+for path in sorted(CRATES.rglob("*.rs")):
+    relative = path.relative_to(ROOT)
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+
+    if not text.startswith("//!") and "/tests/" not in f"/{relative.as_posix()}":
+        FAILURES.append(f"{relative}: production Rust files start with //! contract docs")
+
+    if "#[cfg(test)]" in text:
+        FAILURES.append(f"{relative}: move tests out of production implementation files")
+
+    if any(part in BANNED_PARTS for part in relative.parts):
+        FAILURES.append(f"{relative}: banned catch-all module name")
+
+    is_test = "tests" in relative.parts or "examples" in relative.parts
+    limit = 320 if is_test else 100 if path.name in FACADE_NAMES else 240
+    if len(lines) > limit:
+        FAILURES.append(f"{relative}: {len(lines)} lines exceeds {limit}-line role ceiling")
+
+if FAILURES:
+    print("source-shape violations:", file=sys.stderr)
+    for failure in FAILURES:
+        print(f"  - {failure}", file=sys.stderr)
+    raise SystemExit(1)

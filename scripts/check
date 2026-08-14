@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cargo fmt --all --check
+cargo check -p calandria --no-default-features --lib --locked
+cargo check -p calandria --no-default-features --features alloc --lib --locked
+cargo check -p calandria-sim --lib --locked
+cargo check -p calandria-mio --lib --locked
+cargo test --workspace --all-targets --all-features --locked
+cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
+python3 scripts/check-source-shape
+git diff --check
