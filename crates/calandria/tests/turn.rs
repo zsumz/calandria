@@ -1,3 +1,5 @@
+//! Scheduling-interest merge and work-accounting tests.
+
 use calandria::{Deadline, Moment, Next, Span, Turn, WorkCount};
 
 #[test]

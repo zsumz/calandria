@@ -7,8 +7,8 @@ use crate::{Deadline, Moment, Retained, RetainedBytes};
 
 use super::scheduled::Scheduled;
 use super::{
-    Timer, TimerDrain, TimerId, TimerLimits, TimerOwnerId, TimerQueueSnapshot,
-    TimerScheduleError, TimerScheduleFailure, TimerToken,
+    Timer, TimerDrain, TimerId, TimerLimits, TimerOwnerId, TimerQueueSnapshot, TimerScheduleError,
+    TimerScheduleFailure, TimerToken,
 };
 
 /// Stable count- and retained-byte-bounded owner-local timer queue.
@@ -32,11 +32,7 @@ impl<T: Retained> TimerQueue<T> {
     /// This supports restored identity floors and deterministic exhaustion
     /// tests. A queue must never restart below an identity that can still be
     /// presented for cancellation.
-    pub fn starting_at(
-        owner: TimerOwnerId,
-        limits: TimerLimits,
-        first_id: TimerId,
-    ) -> Self {
+    pub fn starting_at(owner: TimerOwnerId, limits: TimerLimits, first_id: TimerId) -> Self {
         Self {
             owner,
             limits,
@@ -68,7 +64,9 @@ impl<T: Retained> TimerQueue<T> {
 
     /// Returns the earliest deadline without changing ownership.
     pub fn next_deadline(&self) -> Option<Deadline> {
-        self.timers.peek().map(|scheduled| scheduled.timer.deadline())
+        self.timers
+            .peek()
+            .map(|scheduled| scheduled.timer.deadline())
     }
 
     /// Admits one value at an absolute deadline.

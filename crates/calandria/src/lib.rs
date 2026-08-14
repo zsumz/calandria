@@ -20,9 +20,9 @@ pub mod host;
 pub mod io;
 #[cfg(feature = "std")]
 pub mod mailbox;
-pub mod retained;
 #[cfg(feature = "alloc")]
 pub mod resource;
+pub mod retained;
 #[cfg(feature = "std")]
 pub mod shutdown;
 pub mod time;
@@ -40,8 +40,7 @@ pub use batch::{
 #[cfg(feature = "std")]
 pub use completion::{Completer, Completion, CompletionError, completion};
 pub use host::{
-    Clock, Duty, EmbeddedHost, HostAction, HostConfig, HostError, HostPhase, HostSnapshot,
-    HostStep,
+    Clock, Duty, EmbeddedHost, HostAction, HostConfig, HostError, HostPhase, HostSnapshot, HostStep,
 };
 #[cfg(feature = "std")]
 pub use host::{
@@ -50,20 +49,20 @@ pub use host::{
 };
 #[cfg(feature = "alloc")]
 pub use io::{
-    Interest, PollEvent, PollEvents, PollEventsDrain, PollEventsError, PollReport,
-    Poller, Readiness,
+    Interest, PollEvent, PollEvents, PollEventsDrain, PollEventsError, PollReport, Poller,
+    Readiness,
 };
 #[cfg(feature = "std")]
 pub use mailbox::{
     AdmissionFailure, DrainReport, DrainStatus, Lane, LaneLimits, LaneSnapshot, MailboxLimits,
     MailboxReceiver, MailboxSender, MailboxSnapshot, TrySendError, mailbox, mailbox_with,
 };
-pub use retained::{Retained, RetainedBytes, RetainedBytesOverflow};
 #[cfg(feature = "alloc")]
 pub use resource::{
     ResourceAdmissionError, ResourceAdmissionFailure, ResourceGeneration, ResourceOwnerId,
     ResourceSlotId, ResourceTable, ResourceTableSnapshot, ResourceToken, ResourceTokenFailure,
 };
+pub use retained::{Retained, RetainedBytes, RetainedBytesOverflow};
 #[cfg(feature = "std")]
 pub use shutdown::{
     ShutdownCompleter, ShutdownRequester, ShutdownSubscribeError, shutdown_barrier,
@@ -72,8 +71,7 @@ pub use time::{Deadline, DurationOverflow, Moment, Span};
 #[cfg(feature = "alloc")]
 pub use timer::{
     Timer, TimerDrain, TimerId, TimerLimits, TimerOwnerId, TimerQueue, TimerQueueSnapshot,
-    TimerScheduleError,
-    TimerScheduleFailure, TimerToken,
+    TimerScheduleError, TimerScheduleFailure, TimerToken,
 };
 pub use turn::{Next, Turn, WorkCount};
 #[cfg(feature = "std")]

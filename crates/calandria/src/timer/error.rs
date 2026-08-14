@@ -71,11 +71,7 @@ pub struct TimerScheduleError<T> {
 }
 
 impl<T> TimerScheduleError<T> {
-    pub(super) const fn new(
-        deadline: Deadline,
-        value: T,
-        failure: TimerScheduleFailure,
-    ) -> Self {
+    pub(super) const fn new(deadline: Deadline, value: T, failure: TimerScheduleFailure) -> Self {
         Self {
             deadline,
             value,

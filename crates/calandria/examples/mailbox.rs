@@ -9,9 +9,7 @@ use std::{
     },
 };
 
-use calandria::{
-    LaneLimits, MailboxLimits, Retained, RetainedBytes, WakeHandle, mailbox,
-};
+use calandria::{LaneLimits, MailboxLimits, Retained, RetainedBytes, WakeHandle, mailbox};
 
 #[derive(Debug)]
 enum Command {

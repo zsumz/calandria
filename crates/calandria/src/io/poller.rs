@@ -26,16 +26,10 @@ impl PollReport {
     /// Panics when `wakes` exceeds `delivered` or the raw observation count
     /// cannot be represented by `usize`. Both conditions indicate a broken
     /// poller implementation rather than runtime pressure.
-    pub const fn new(
-        delivered: usize,
-        wakes: usize,
-        stale: usize,
-        saturated: bool,
-    ) -> Self {
+    pub const fn new(delivered: usize, wakes: usize, stale: usize, saturated: bool) -> Self {
         assert!(wakes <= delivered, "wake count exceeds delivered events");
-        let observed = match delivered.checked_add(stale) {
-            Some(observed) => observed,
-            None => panic!("poll report observation count overflowed"),
+        let Some(observed) = delivered.checked_add(stale) else {
+            panic!("poll report observation count overflowed");
         };
         Self {
             observed,

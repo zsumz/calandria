@@ -102,12 +102,7 @@ impl<T> LaneState<T> {
         }
     }
 
-    pub(super) fn admit(
-        &mut self,
-        item: T,
-        retained: RetainedBytes,
-        next_bytes: RetainedBytes,
-    ) {
+    pub(super) fn admit(&mut self, item: T, retained: RetainedBytes, next_bytes: RetainedBytes) {
         self.queue.push_back(Entry { item, retained });
         self.retained = next_bytes;
     }
@@ -117,9 +112,10 @@ impl<T> LaneState<T> {
             let Some(entry) = self.queue.pop_front() else {
                 return;
             };
-            self.retained = self.retained.checked_sub(entry.retained).unwrap_or_else(|| {
-                panic!("mailbox retained-byte accounting invariant violated")
-            });
+            self.retained = self
+                .retained
+                .checked_sub(entry.retained)
+                .unwrap_or_else(|| panic!("mailbox retained-byte accounting invariant violated"));
             destination.push(entry.item);
         }
     }

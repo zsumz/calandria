@@ -1,3 +1,5 @@
+//! Backend-neutral readiness and bounded poll contract tests.
+
 use core::num::NonZeroUsize;
 
 use calandria::{
@@ -20,9 +22,15 @@ fn interest_is_nonempty_extensible_and_explicit() {
     assert!(!combined.is_lio());
     assert!(combined.contains(Interest::READ_WRITE));
     assert!(combined.intersects(Interest::PRIORITY));
-    assert_eq!(combined.remove(Interest::PRIORITY), Some(Interest::READ_WRITE | Interest::AIO));
+    assert_eq!(
+        combined.remove(Interest::PRIORITY),
+        Some(Interest::READ_WRITE | Interest::AIO)
+    );
     assert_eq!(Interest::READABLE.remove(Interest::READABLE), None);
-    assert_eq!(format!("{combined:?}"), "READABLE | WRITABLE | PRIORITY | AIO");
+    assert_eq!(
+        format!("{combined:?}"),
+        "READABLE | WRITABLE | PRIORITY | AIO"
+    );
 }
 
 #[test]
@@ -48,10 +56,7 @@ fn readiness_retains_independent_backend_hints() {
     assert!(!readiness.contains(Readiness::WRITABLE));
     assert_eq!(
         readiness.remove(Readiness::ERROR | Readiness::AIO),
-        Readiness::READABLE
-            | Readiness::WRITE_CLOSED
-            | Readiness::PRIORITY
-            | Readiness::LIO,
+        Readiness::READABLE | Readiness::WRITE_CLOSED | Readiness::PRIORITY | Readiness::LIO,
     );
     assert_eq!(
         format!("{readiness:?}"),
@@ -102,7 +107,10 @@ fn poll_events_are_fixed_capacity_and_ownership_preserving() {
     assert_eq!(error.capacity(), nonzero(1));
     assert_eq!(events.len(), 1);
     assert_eq!(events.as_slice().len(), 1);
-    assert_eq!(events.get(0).and_then(|event| event.resource()), Some(token));
+    assert_eq!(
+        events.get(0).and_then(|event| event.resource()),
+        Some(token)
+    );
     assert_eq!((&events).into_iter().count(), 1);
     assert_eq!(events.drain().collect::<Vec<_>>().len(), 1);
     assert!(events.is_empty());

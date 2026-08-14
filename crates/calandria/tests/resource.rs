@@ -1,3 +1,5 @@
+//! Generational resource-table ownership and stale-token tests.
+
 use std::num::NonZeroUsize;
 
 use calandria::{
@@ -54,6 +56,14 @@ fn slot_reuse_rejects_stale_generation_without_touching_current_resource() {
     assert_eq!(current.slot(), stale.slot());
     assert_eq!(current.generation(), ResourceGeneration::new(1));
     assert_eq!(
+        table.get_mut(stale).map(|_| ()),
+        Err(ResourceTokenFailure::GenerationMismatch {
+            slot: stale.slot(),
+            current: ResourceGeneration::new(1),
+            supplied: ResourceGeneration::INITIAL,
+        })
+    );
+    assert_eq!(
         table.remove(stale),
         Err(ResourceTokenFailure::GenerationMismatch {
             slot: stale.slot(),
@@ -61,7 +71,10 @@ fn slot_reuse_rejects_stale_generation_without_touching_current_resource() {
             supplied: ResourceGeneration::INITIAL,
         })
     );
-    assert_eq!(table.get(current).map(|(_, value)| value.as_str()), Ok("new"));
+    assert_eq!(
+        table.get(current).map(|(_, value)| value.as_str()),
+        Ok("new")
+    );
 }
 
 #[test]
@@ -72,11 +85,7 @@ fn owner_and_slot_are_validated_before_generation() {
         .admit("identity", 5_u8)
         .unwrap_or_else(|error| panic!("resource must fit: {error}"));
 
-    let foreign = ResourceToken::new(
-        ResourceOwnerId::new(2),
-        token.slot(),
-        token.generation(),
-    );
+    let foreign = ResourceToken::new(ResourceOwnerId::new(2), token.slot(), token.generation());
     assert_eq!(
         table.get(foreign),
         Err(ResourceTokenFailure::OwnerMismatch {
@@ -147,11 +156,7 @@ fn admission_selects_the_lowest_vacant_slot_deterministically() {
 #[test]
 fn final_generation_retires_the_slot_permanently() {
     let owner = ResourceOwnerId::new(17);
-    let mut table = ResourceTable::starting_at(
-        owner,
-        nonzero(1),
-        ResourceGeneration::MAX,
-    );
+    let mut table = ResourceTable::starting_at(owner, nonzero(1), ResourceGeneration::MAX);
     let last = table
         .admit("last", String::from("owned"))
         .unwrap_or_else(|error| panic!("last generation must fit: {error}"));
@@ -173,10 +178,7 @@ fn final_generation_retires_the_slot_permanently() {
         error.failure(),
         ResourceAdmissionFailure::TokenSpaceExhausted
     );
-    assert_eq!(
-        error.into_values(),
-        ("returned", String::from("resource"))
-    );
+    assert_eq!(error.into_values(), ("returned", String::from("resource")));
 }
 
 fn nonzero(value: usize) -> NonZeroUsize {

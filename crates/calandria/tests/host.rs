@@ -1,9 +1,6 @@
-use std::{
-    collections::VecDeque,
-    convert::Infallible,
-    error::Error,
-    fmt,
-};
+//! Embedded duty-host scheduling and terminal-state tests.
+
+use std::{collections::VecDeque, convert::Infallible, error::Error, fmt};
 
 use calandria::{
     Clock, Deadline, Duty, EmbeddedHost, HostAction, HostConfig, HostError, HostPhase, Moment,
@@ -264,10 +261,7 @@ impl Duty for ExplicitComposite {
 
     fn turn(&mut self, _now: Moment) -> Result<Turn, Self::Error> {
         self.order.push("checkpoint");
-        let checkpoint = Turn::until(
-            WorkCount::new(1),
-            Deadline::at(Moment::from_nanos(50)),
-        );
+        let checkpoint = Turn::until(WorkCount::new(1), Deadline::at(Moment::from_nanos(50)));
 
         self.order.push("maintenance");
         let maintenance = Turn::runnable(WorkCount::new(2));

@@ -1,16 +1,11 @@
-use std::{
-    convert::Infallible,
-    error::Error,
-    fmt,
-    num::NonZeroUsize,
-    sync::mpsc,
-    time::Duration,
-};
+//! Dedicated duty-host lifecycle, notification, and failure tests.
+
+use std::{convert::Infallible, error::Error, fmt, num::NonZeroUsize, sync::mpsc, time::Duration};
 
 use calandria::{
-    DedicatedFailure, DedicatedHost, DedicatedOutcome, DrainStatus, Duty, EmbeddedHost,
-    HostConfig, LaneLimits, MailboxLimits, MailboxReceiver, Moment, MonotonicClock, Retained,
-    RetainedBytes, Span, Turn, WaitOutcome, Waiter, WorkCount, mailbox, thread_parker,
+    DedicatedFailure, DedicatedHost, DedicatedOutcome, DrainStatus, Duty, EmbeddedHost, HostConfig,
+    LaneLimits, MailboxLimits, MailboxReceiver, Moment, MonotonicClock, Retained, RetainedBytes,
+    Span, Turn, WaitOutcome, Waiter, WorkCount, mailbox, thread_parker,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -108,9 +103,8 @@ fn dedicated_host_runs_a_non_io_frame_owner_to_terminal_closure() -> Result<(), 
     assert!(sender.try_send(Frame(vec![6])).is_ok());
     drop(sender);
 
-    let exit = match dedicated.join() {
-        Ok(exit) => exit,
-        Err(_) => panic!("frame owner thread panicked"),
+    let Ok(exit) = dedicated.join() else {
+        panic!("frame owner thread panicked");
     };
     assert!(matches!(exit.outcome(), DedicatedOutcome::Stopped));
     assert_eq!(exit.duty().frames, 3);
@@ -118,7 +112,12 @@ fn dedicated_host_runs_a_non_io_frame_owner_to_terminal_closure() -> Result<(), 
     assert!(exit.host_snapshot().turns() >= 2);
     let (_host, _waiter, outcome, dedicated) = exit.into_parts();
     assert!(matches!(outcome, DedicatedOutcome::Stopped));
-    assert!(dedicated.waits() >= 1);
+    assert_eq!(
+        dedicated.waits(),
+        dedicated
+            .notifications()
+            .saturating_add(dedicated.idle_returns())
+    );
     Ok(())
 }
 
@@ -144,9 +143,8 @@ fn repeated_publication_wakes_survive_owner_parking() -> Result<(), Box<dyn Erro
     assert_eq!(observed.recv_timeout(Duration::from_secs(2))?, 2);
     drop(sender);
 
-    let exit = match dedicated.join() {
-        Ok(exit) => exit,
-        Err(_) => panic!("repeated-wake owner thread panicked"),
+    let Ok(exit) = dedicated.join() else {
+        panic!("repeated-wake owner thread panicked");
     };
     assert!(matches!(exit.outcome(), DedicatedOutcome::Stopped));
     assert_eq!(exit.duty().frames, 2);
@@ -194,9 +192,8 @@ impl Waiter<WaitingDuty> for FailingWaiter {
 fn waiting_failure_returns_the_owned_terminal_duty() -> Result<(), Box<dyn Error>> {
     let host = EmbeddedHost::new(WaitingDuty, MonotonicClock::new(), HostConfig::default());
     let dedicated = DedicatedHost::spawn("calandria-failing-wait", host, FailingWaiter)?;
-    let exit = match dedicated.join() {
-        Ok(exit) => exit,
-        Err(_) => panic!("failing waiter thread panicked"),
+    let Ok(exit) = dedicated.join() else {
+        panic!("failing waiter thread panicked");
     };
 
     assert!(matches!(

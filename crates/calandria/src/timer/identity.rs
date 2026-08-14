@@ -60,11 +60,7 @@ pub struct TimerToken {
 }
 
 impl TimerToken {
-    pub(super) const fn new(
-        owner: TimerOwnerId,
-        id: TimerId,
-        deadline: Deadline,
-    ) -> Self {
+    pub(super) const fn new(owner: TimerOwnerId, id: TimerId, deadline: Deadline) -> Self {
         Self {
             owner,
             id,

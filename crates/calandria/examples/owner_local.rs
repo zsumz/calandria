@@ -1,9 +1,6 @@
 //! Combines bounded timers, readiness events, and generational resources.
 
-use std::{
-    error::Error,
-    num::NonZeroUsize,
-};
+use std::{error::Error, num::NonZeroUsize};
 
 use calandria::{
     Deadline, EventBatch, EventBatchLimits, Moment, ResourceOwnerId, ResourceTable, ResourceToken,
@@ -26,10 +23,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut resources = ResourceTable::new(ResourceOwnerId::new(0), nonzero_usize(8));
     let resource = resources.admit(7_u64, "connection")?;
 
-    let mut timers = TimerQueue::new(TimerOwnerId::new(1), TimerLimits::new(
-        nonzero_usize(32),
-        RetainedBytes::new(4 * 1_024),
-    ));
+    let mut timers = TimerQueue::new(
+        TimerOwnerId::new(1),
+        TimerLimits::new(nonzero_usize(32), RetainedBytes::new(4 * 1_024)),
+    );
     let _ = timers.schedule(
         Deadline::at(Moment::from_nanos(10)),
         Event::Deadline(resource),

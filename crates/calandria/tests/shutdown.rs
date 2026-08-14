@@ -41,9 +41,8 @@ fn one_request_admits_every_bounded_subscriber() {
 fn subscriber_capacity_rejects_without_publishing_an_extra_request() {
     let (requester, _completer) = shutdown_barrier(NonZeroUsize::MIN);
     let first = requester.subscribe(|| Ok::<_, ()>(()));
-    let second = requester.subscribe(|| -> Result<(), ()> {
-        panic!("a full follower must not publish shutdown")
-    });
+    let second = requester
+        .subscribe(|| -> Result<(), ()> { panic!("a full follower must not publish shutdown") });
 
     assert!(first.is_ok());
     assert!(matches!(second, Err(ShutdownSubscribeError::Full)));
@@ -70,9 +69,8 @@ fn failed_first_request_reopens_the_barrier() {
 fn panicking_first_request_reopens_the_barrier() {
     let (requester, mut completer) = shutdown_barrier(NonZeroUsize::MIN);
     let panicked = catch_unwind(AssertUnwindSafe(|| {
-        let _ = requester.subscribe(|| -> Result<(), ()> {
-            panic!("request publication panicked")
-        });
+        let _ =
+            requester.subscribe(|| -> Result<(), ()> { panic!("request publication panicked") });
     }));
     assert!(panicked.is_err());
     let retried = requester

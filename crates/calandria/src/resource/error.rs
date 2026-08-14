@@ -43,11 +43,7 @@ pub struct ResourceAdmissionError<K, R> {
 }
 
 impl<K, R> ResourceAdmissionError<K, R> {
-    pub(super) const fn new(
-        identity: K,
-        resource: R,
-        failure: ResourceAdmissionFailure,
-    ) -> Self {
+    pub(super) const fn new(identity: K, resource: R, failure: ResourceAdmissionFailure) -> Self {
         Self {
             identity,
             resource,

@@ -1,3 +1,5 @@
+//! Bounded mailbox admission, ownership, ordering, and wake tests.
+
 use std::{
     io,
     num::NonZeroUsize,
@@ -8,8 +10,8 @@ use std::{
 };
 
 use calandria::{
-    AdmissionFailure, DrainStatus, Lane, LaneLimits, MailboxLimits, MailboxReceiver,
-    MailboxSender, Retained, RetainedBytes, WakeHandle, WakeSource, mailbox,
+    AdmissionFailure, DrainStatus, Lane, LaneLimits, MailboxLimits, MailboxReceiver, MailboxSender,
+    Retained, RetainedBytes, WakeHandle, WakeSource, mailbox,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -166,10 +168,7 @@ fn receiver_close_returns_every_owned_value_and_rejects_later_work() {
 #[test]
 fn zero_byte_lane_accepts_only_fixed_size_messages() {
     let calls = Arc::new(AtomicUsize::new(0));
-    let wake = WakeHandle::new(RecordingWake {
-        calls,
-        fail: false,
-    });
+    let wake = WakeHandle::new(RecordingWake { calls, fail: false });
     let limits = MailboxLimits::new(
         LaneLimits::new(nonzero_usize(1), RetainedBytes::ZERO),
         LaneLimits::new(nonzero_usize(2), RetainedBytes::ZERO),

@@ -148,15 +148,18 @@ impl WakeHandle {
                     Err(WAKING_ACKNOWLEDGED) => {
                         self.shared.phase.store(IDLE, Ordering::Release);
                     }
-                    Err(_) => panic!("wake completion invariant violated"),
+                    Err(actual) => {
+                        panic!("wake completion invariant violated at phase {actual}")
+                    }
                 }
                 Ok(())
             }
             Err(source) => {
                 let previous = self.shared.phase.swap(IDLE, Ordering::AcqRel);
-                if previous != WAKING && previous != WAKING_ACKNOWLEDGED {
-                    panic!("wake failure invariant violated");
-                }
+                assert!(
+                    previous == WAKING || previous == WAKING_ACKNOWLEDGED,
+                    "wake failure invariant violated"
+                );
                 Err(source)
             }
         }

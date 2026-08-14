@@ -3,6 +3,13 @@
 use super::{DedicatedOutcome, DedicatedSnapshot};
 use crate::host::{Clock, Duty, EmbeddedHost, HostSnapshot, Waiter};
 
+type DedicatedParts<D, C, W> = (
+    EmbeddedHost<D, C>,
+    W,
+    DedicatedOutcome<<D as Duty>::Error, <C as Clock>::Error, <W as Waiter<D>>::Error>,
+    DedicatedSnapshot,
+);
+
 /// Owned terminal state returned by a dedicated host thread.
 #[derive(Debug)]
 pub struct DedicatedExit<D, C, W>
@@ -49,14 +56,7 @@ where
     }
 
     /// Consumes the exit and returns every owned component and observation.
-    pub fn into_parts(
-        self,
-    ) -> (
-        EmbeddedHost<D, C>,
-        W,
-        DedicatedOutcome<D::Error, C::Error, W::Error>,
-        DedicatedSnapshot,
-    ) {
+    pub fn into_parts(self) -> DedicatedParts<D, C, W> {
         (self.host, self.waiter, self.outcome, self.dedicated)
     }
 

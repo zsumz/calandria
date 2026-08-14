@@ -16,11 +16,7 @@ pub struct MailboxReceiver<T> {
 
 impl<T> MailboxReceiver<T> {
     /// Drains at most `limit` values, taking control work before ordinary work.
-    pub fn drain_into(
-        &mut self,
-        destination: &mut Vec<T>,
-        limit: NonZeroUsize,
-    ) -> DrainReport {
+    pub fn drain_into(&mut self, destination: &mut Vec<T>, limit: NonZeroUsize) -> DrainReport {
         let mut state = self.shared.lock();
         let before = destination.len();
 

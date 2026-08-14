@@ -30,11 +30,7 @@ where
     W::Error: Send + 'static,
 {
     /// Starts an owned thread that turns, waits, and terminates the host.
-    pub fn spawn(
-        name: impl Into<String>,
-        host: EmbeddedHost<D, C>,
-        waiter: W,
-    ) -> io::Result<Self> {
+    pub fn spawn(name: impl Into<String>, host: EmbeddedHost<D, C>, waiter: W) -> io::Result<Self> {
         let join = thread::Builder::new()
             .name(name.into())
             .spawn(move || run(host, waiter))?;

@@ -1,3 +1,5 @@
+//! Timer count, byte, and identity exhaustion tests.
+
 use std::num::NonZeroUsize;
 
 use calandria::{
@@ -83,9 +85,8 @@ fn zero_byte_queue_accepts_only_fixed_size_values() {
     let mut timers = queue(2, 0);
     assert!(timers.schedule(deadline(10), Item::new("fixed", 0)).is_ok());
 
-    let error = match timers.schedule(deadline(20), Item::new("retained", 1)) {
-        Ok(_) => panic!("retained timer must be rejected"),
-        Err(error) => error,
+    let Err(error) = timers.schedule(deadline(20), Item::new("retained", 1)) else {
+        panic!("retained timer must be rejected");
     };
 
     assert!(matches!(
@@ -145,10 +146,10 @@ fn identity_exhaustion_is_explicit_after_the_last_token() {
 }
 
 fn queue(count: usize, retained: u64) -> TimerQueue<Item> {
-    TimerQueue::new(TimerOwnerId::new(1), TimerLimits::new(
-        nonzero_usize(count),
-        RetainedBytes::new(retained),
-    ))
+    TimerQueue::new(
+        TimerOwnerId::new(1),
+        TimerLimits::new(nonzero_usize(count), RetainedBytes::new(retained)),
+    )
 }
 
 fn deadline(raw: u64) -> Deadline {

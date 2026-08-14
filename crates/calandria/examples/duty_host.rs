@@ -1,11 +1,6 @@
 //! Runs a bounded non-I/O frame owner on Calandria's dedicated host.
 
-use std::{
-    convert::Infallible,
-    error::Error,
-    io,
-    num::NonZeroUsize,
-};
+use std::{convert::Infallible, error::Error, io, num::NonZeroUsize};
 
 use calandria::{
     DedicatedHost, DedicatedOutcome, DrainStatus, Duty, EmbeddedHost, HostConfig, LaneLimits,
@@ -96,9 +91,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map_err(|_| io::Error::other("beta frame was rejected"))?;
     drop(sender);
 
-    let exit = match dedicated.join() {
-        Ok(exit) => exit,
-        Err(_) => return Err(io::Error::other("frame owner panicked").into()),
+    let Ok(exit) = dedicated.join() else {
+        return Err(io::Error::other("frame owner panicked").into());
     };
     if !matches!(exit.outcome(), DedicatedOutcome::Stopped) {
         return Err(io::Error::other("frame owner did not stop cleanly").into());

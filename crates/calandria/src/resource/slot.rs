@@ -15,10 +15,7 @@ pub(super) enum Slot<K, R> {
     Exhausted,
 }
 
-pub(super) fn token_failure<K, R>(
-    slot: &Slot<K, R>,
-    token: ResourceToken,
-) -> ResourceTokenFailure {
+pub(super) fn token_failure<K, R>(slot: &Slot<K, R>, token: ResourceToken) -> ResourceTokenFailure {
     match slot {
         Slot::Vacant { generation } => ResourceTokenFailure::Vacant {
             slot: token.slot(),

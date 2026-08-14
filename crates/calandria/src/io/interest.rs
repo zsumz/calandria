@@ -35,6 +35,7 @@ impl Interest {
     pub const LIO: Self = Self::from_bits(LIO);
 
     /// Combines two nonempty interest sets.
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Self::from_bits(self.0.get() | other.0.get())
     }

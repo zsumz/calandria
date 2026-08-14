@@ -1,3 +1,5 @@
+//! Coalesced wake linearization and failure-retry tests.
+
 use std::{
     io,
     sync::{
@@ -97,7 +99,9 @@ fn acknowledgement_during_backend_wake_is_not_lost() {
     wake.acknowledge();
     release.wait();
 
-    let result = worker.join().unwrap_or_else(std::panic::resume_unwind);
+    let result = worker
+        .join()
+        .unwrap_or_else(|panic| std::panic::resume_unwind(panic));
     assert!(result.is_ok());
     assert!(!wake.is_requested());
 
@@ -125,8 +129,12 @@ fn concurrent_callers_do_not_observe_failed_wake_as_success() {
     let second = thread::spawn(move || second_wake.wake());
     release.wait();
 
-    let first_result = first.join().unwrap_or_else(std::panic::resume_unwind);
-    let second_result = second.join().unwrap_or_else(std::panic::resume_unwind);
+    let first_result = first
+        .join()
+        .unwrap_or_else(|panic| std::panic::resume_unwind(panic));
+    let second_result = second
+        .join()
+        .unwrap_or_else(|panic| std::panic::resume_unwind(panic));
     assert!(first_result.is_err());
     assert!(second_result.is_ok());
     assert_eq!(calls.load(Ordering::Relaxed), 2);

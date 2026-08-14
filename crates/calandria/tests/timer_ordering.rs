@@ -1,3 +1,5 @@
+//! Stable timer ordering, cancellation, and bounded-drain tests.
+
 use std::num::NonZeroUsize;
 
 use calandria::{
@@ -136,7 +138,10 @@ fn canceled_tokens_are_never_reused() {
 
     assert_ne!(stale, current);
     assert!(timers.cancel(stale).is_none());
-    assert_eq!(timers.cancel(current).map(|timer| timer.into_value().name), Some("new"));
+    assert_eq!(
+        timers.cancel(current).map(|timer| timer.into_value().name),
+        Some("new")
+    );
 }
 
 fn queue(count: usize, retained: u64) -> TimerQueue<Item> {

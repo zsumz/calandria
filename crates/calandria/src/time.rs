@@ -79,6 +79,7 @@ impl Span {
     }
 
     /// Returns the smaller span.
+    #[must_use]
     pub const fn min(self, other: Self) -> Self {
         if self.0 <= other.0 { self } else { other }
     }
@@ -88,7 +89,8 @@ impl TryFrom<Duration> for Span {
     type Error = DurationOverflow;
 
     fn try_from(duration: Duration) -> Result<Self, Self::Error> {
-        let nanos = u64::try_from(duration.as_nanos()).map_err(|_| DurationOverflow { duration })?;
+        let nanos =
+            u64::try_from(duration.as_nanos()).map_err(|_| DurationOverflow { duration })?;
         Ok(Self(nanos))
     }
 }

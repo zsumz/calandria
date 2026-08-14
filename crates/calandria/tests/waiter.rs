@@ -1,8 +1,6 @@
-use std::{
-    error::Error,
-    sync::mpsc,
-    thread,
-};
+//! Thread parker notification and wait-boundary tests.
+
+use std::{error::Error, sync::mpsc, thread};
 
 use calandria::{Span, WaitOutcome, Waiter, thread_parker};
 
@@ -63,9 +61,8 @@ fn blocked_owner_observes_cross_thread_notification() -> Result<(), Box<dyn Erro
 
     ready_receiver.recv()?;
     notifier.notify();
-    let outcome = match join.join() {
-        Ok(outcome) => outcome,
-        Err(_) => panic!("waiter thread panicked"),
+    let Ok(outcome) = join.join() else {
+        panic!("waiter thread panicked");
     };
 
     assert_eq!(outcome, WaitOutcome::Notified);

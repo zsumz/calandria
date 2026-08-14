@@ -36,10 +36,7 @@ impl TimerLimits {
 
 impl Default for TimerLimits {
     fn default() -> Self {
-        Self::new(
-            nonzero_usize(1_024),
-            RetainedBytes::new(16 * 1_024 * 1_024),
-        )
+        Self::new(nonzero_usize(1_024), RetainedBytes::new(16 * 1_024 * 1_024))
     }
 }
 

@@ -46,11 +46,13 @@ impl Readiness {
     pub const LIO: Self = Self(LIO);
 
     /// Combines readiness observations.
+    #[must_use]
     pub const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
     /// Removes all observations present in `other`.
+    #[must_use]
     pub const fn remove(self, other: Self) -> Self {
         Self(self.0 & !other.0)
     }

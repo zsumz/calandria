@@ -22,6 +22,7 @@ impl WorkCount {
     }
 
     /// Adds counts without wrapping diagnostic state.
+    #[must_use]
     pub const fn saturating_add(self, other: Self) -> Self {
         Self(self.0.saturating_add(other.0))
     }
@@ -45,6 +46,7 @@ impl Next {
     ///
     /// Immediate work wins, deadlines select the earliest moment, and `Stop`
     /// acts as the identity for a host aggregating live owners.
+    #[must_use]
     pub const fn merge(self, other: Self) -> Self {
         match (self, other) {
             (Self::Now, _) | (_, Self::Now) => Self::Now,
@@ -57,9 +59,7 @@ impl Next {
             }
             (Self::WakeOr(deadline), Self::Wake | Self::Stop)
             | (Self::Wake | Self::Stop, Self::WakeOr(deadline)) => Self::WakeOr(deadline),
-            (Self::Wake, Self::Wake) | (Self::Wake, Self::Stop) | (Self::Stop, Self::Wake) => {
-                Self::Wake
-            }
+            (Self::Wake, Self::Wake | Self::Stop) | (Self::Stop, Self::Wake) => Self::Wake,
             (Self::Stop, Self::Stop) => Self::Stop,
         }
     }
@@ -122,6 +122,7 @@ impl Turn {
     }
 
     /// Combines results from independent owners or mechanisms.
+    #[must_use]
     pub const fn merge(self, other: Self) -> Self {
         Self {
             work: self.work.saturating_add(other.work),

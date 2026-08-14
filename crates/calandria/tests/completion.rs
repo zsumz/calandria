@@ -61,10 +61,7 @@ fn nonblocking_observation_is_pending_then_consumes_once() {
     assert!(completion.try_take().is_none());
     assert_eq!(completer.complete(7), Ok(()));
     assert_eq!(completion.try_take(), Some(Ok(7)));
-    assert_eq!(
-        completion.try_take(),
-        Some(Err(CompletionError::Consumed))
-    );
+    assert_eq!(completion.try_take(), Some(Err(CompletionError::Consumed)));
 }
 
 #[test]
@@ -130,7 +127,11 @@ fn publication_racing_abandonment_drops_the_value_exactly_once() {
 
         gate.wait();
         completion.abandon();
-        drop(producer.join().unwrap_or_else(|_| panic!("producer panicked")));
+        drop(
+            producer
+                .join()
+                .unwrap_or_else(|_| panic!("producer panicked")),
+        );
 
         assert_eq!(drops.load(Ordering::SeqCst), 1);
     }

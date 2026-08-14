@@ -1,3 +1,5 @@
+//! Fixed-width monotonic time and deadline arithmetic tests.
+
 use calandria::{Deadline, Moment, Span};
 
 #[test]

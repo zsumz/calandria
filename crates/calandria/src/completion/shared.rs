@@ -53,12 +53,12 @@ impl<T> Shared<T> {
             State::Pending {
                 observer_alive: false,
                 ..
-            } => (Err(value), None),
+            }
+            | State::Consumed => (Err(value), None),
             ready @ State::Ready(_) => {
                 *state = ready;
                 (Err(value), None)
             }
-            State::Consumed => (Err(value), None),
         };
         drop(state);
         self.inner.ready.notify_all();
@@ -77,12 +77,11 @@ impl<T> Shared<T> {
                 *state = State::Ready(Err(CompletionError::Closed));
                 waker
             }
-            State::Pending { .. } => None,
+            State::Pending { .. } | State::Consumed => None,
             ready @ State::Ready(_) => {
                 *state = ready;
                 None
             }
-            State::Consumed => None,
         };
         drop(state);
         self.inner.ready.notify_all();

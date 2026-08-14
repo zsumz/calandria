@@ -69,9 +69,9 @@ impl<K, R> ResourceTable<K, R> {
     where
         K: PartialEq,
     {
-        self.slots.iter().any(|slot| {
-            matches!(slot, Slot::Occupied { identity: current, .. } if current == identity)
-        })
+        self.slots.iter().any(
+            |slot| matches!(slot, Slot::Occupied { identity: current, .. } if current == identity),
+        )
     }
 
     /// Admits one unique identity and returns its exact generation token.
@@ -133,11 +133,9 @@ impl<K, R> ResourceTable<K, R> {
                     generation,
                     identity: current,
                     ..
-                } if current == identity => Some(ResourceToken::new(
-                    self.owner,
-                    slot_id(index),
-                    *generation,
-                )),
+                } if current == identity => {
+                    Some(ResourceToken::new(self.owner, slot_id(index), *generation))
+                }
                 Slot::Vacant { .. } | Slot::Occupied { .. } | Slot::Exhausted => None,
             })
     }

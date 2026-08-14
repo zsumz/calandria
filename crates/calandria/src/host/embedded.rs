@@ -2,9 +2,7 @@
 
 use crate::Moment;
 
-use super::{
-    Clock, Duty, HostAction, HostConfig, HostError, HostPhase, HostSnapshot, HostStep,
-};
+use super::{Clock, Duty, HostAction, HostConfig, HostError, HostPhase, HostSnapshot, HostStep};
 
 /// Embedded host whose caller owns every scheduling opportunity.
 #[derive(Debug)]
@@ -96,6 +94,7 @@ where
         self.duty
     }
 
+    #[cfg(feature = "std")]
     pub(super) fn fail(&mut self) {
         self.snapshot.fail();
     }

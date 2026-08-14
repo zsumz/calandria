@@ -41,11 +41,7 @@ pub trait Waiter<D> {
     /// implementations must not call
     /// [`Duty::turn`](super::Duty::turn). The host always executes another
     /// bounded duty turn after this method succeeds.
-    fn wait(
-        &mut self,
-        duty: &mut D,
-        maximum: Span,
-    ) -> Result<WaitOutcome, Self::Error>;
+    fn wait(&mut self, duty: &mut D, maximum: Span) -> Result<WaitOutcome, Self::Error>;
 }
 
 impl<D, F, E> Waiter<D> for F
@@ -54,11 +50,7 @@ where
 {
     type Error = E;
 
-    fn wait(
-        &mut self,
-        duty: &mut D,
-        maximum: Span,
-    ) -> Result<WaitOutcome, Self::Error> {
+    fn wait(&mut self, duty: &mut D, maximum: Span) -> Result<WaitOutcome, Self::Error> {
         self(duty, maximum)
     }
 }
@@ -117,11 +109,7 @@ impl WakeSource for ThreadNotifier {
 impl<D> Waiter<D> for ThreadParker {
     type Error = Infallible;
 
-    fn wait(
-        &mut self,
-        _duty: &mut D,
-        maximum: Span,
-    ) -> Result<WaitOutcome, Self::Error> {
+    fn wait(&mut self, _duty: &mut D, maximum: Span) -> Result<WaitOutcome, Self::Error> {
         let mut notified = self.shared.lock();
         if *notified {
             *notified = false;
@@ -131,12 +119,11 @@ impl<D> Waiter<D> for ThreadParker {
             return Ok(WaitOutcome::Idle);
         }
 
-        let waited = self
-            .shared
-            .changed
-            .wait_timeout_while(notified, maximum.as_duration(), |pending| !*pending);
-        let (mut notified, _timeout) =
-            waited.unwrap_or_else(std::sync::PoisonError::into_inner);
+        let waited =
+            self.shared
+                .changed
+                .wait_timeout_while(notified, maximum.as_duration(), |pending| !*pending);
+        let (mut notified, _timeout) = waited.unwrap_or_else(std::sync::PoisonError::into_inner);
         if *notified {
             *notified = false;
             Ok(WaitOutcome::Notified)

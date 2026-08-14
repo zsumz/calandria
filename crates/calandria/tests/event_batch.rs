@@ -1,8 +1,8 @@
+//! Bounded event-batch ownership, ordering, and accounting tests.
+
 use std::num::NonZeroUsize;
 
-use calandria::{
-    EventBatch, EventBatchFailure, EventBatchLimits, Retained, RetainedBytes,
-};
+use calandria::{EventBatch, EventBatchFailure, EventBatchLimits, Retained, RetainedBytes};
 
 #[derive(Debug, Eq, PartialEq)]
 struct Event {
@@ -32,7 +32,10 @@ fn insertion_pop_and_drain_preserve_owner_order() {
     push(&mut batch, Event::new(2, 5));
     push(&mut batch, Event::new(3, 7));
 
-    assert_eq!(batch.iter().map(|event| event.id).collect::<Vec<_>>(), [1, 2, 3]);
+    assert_eq!(
+        batch.iter().map(|event| event.id).collect::<Vec<_>>(),
+        [1, 2, 3]
+    );
     assert_eq!(batch.pop(), Some(Event::new(3, 7)));
     assert_eq!(batch.snapshot().retained_bytes(), RetainedBytes::new(8));
 

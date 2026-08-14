@@ -26,6 +26,4 @@ pub use embedded::EmbeddedHost;
 pub use error::HostError;
 pub use snapshot::{HostPhase, HostSnapshot};
 #[cfg(feature = "std")]
-pub use waiter::{
-    ThreadNotifier, ThreadParker, WaitOutcome, Waiter, thread_parker,
-};
+pub use waiter::{ThreadNotifier, ThreadParker, WaitOutcome, Waiter, thread_parker};
