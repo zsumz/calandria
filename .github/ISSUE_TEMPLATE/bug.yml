@@ -1,0 +1,26 @@
+name: Bug
+about: Report a reproducible correctness defect
+title: "bug: "
+labels: [bug]
+body:
+  - type: textarea
+    id: invariant
+    attributes:
+      label: Violated invariant
+      description: Name the ownership, ordering, capacity, progress, or lifecycle rule.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include code, seed, replay, or exact operation sequence.
+    validations:
+      required: true
+  - type: textarea
+    id: versions
+    attributes:
+      label: Versions
+      description: Calandria version, Rust version, target, and enabled features.
+    validations:
+      required: true

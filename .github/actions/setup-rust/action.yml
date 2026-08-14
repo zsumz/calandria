@@ -1,0 +1,16 @@
+name: set up rust
+description: install calandria's reviewed Rust toolchain through immutable action code
+
+inputs:
+  toolchain:
+    description: exact Rust toolchain version to install
+    required: false
+    default: "1.88.0"
+
+runs:
+  using: composite
+  steps:
+    - uses: dtolnay/rust-toolchain@2c7215f132e9ebf062739d9130488b56d53c060c
+      with:
+        toolchain: ${{ inputs.toolchain }}
+        components: rustfmt, clippy

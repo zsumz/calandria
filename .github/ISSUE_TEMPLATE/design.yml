@@ -1,0 +1,26 @@
+name: Design proposal
+about: Propose a new mechanism or a locked-boundary change
+title: "design: "
+labels: [design]
+body:
+  - type: textarea
+    id: owner
+    attributes:
+      label: Owner and boundary
+      description: Which owner needs this mechanism, and where does policy remain?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Concrete evidence
+      description: Name at least two consumers or one measured production need.
+    validations:
+      required: true
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Invariants and limits
+      description: Describe ownership, bounds, failure, progress, and lifecycle.
+    validations:
+      required: true
