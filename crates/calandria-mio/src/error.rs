@@ -45,7 +45,10 @@ impl fmt::Display for MioError {
         match self {
             Self::Io(source) => write!(formatter, "Mio operation failed: {source}"),
             Self::RegistrationCapacity { limit } => {
-                write!(formatter, "Mio registration capacity of {limit} was reached")
+                write!(
+                    formatter,
+                    "Mio registration capacity of {limit} was reached"
+                )
             }
             Self::AlreadyRegistered { token } => {
                 write!(formatter, "resource token {token:?} is already registered")
@@ -54,7 +57,10 @@ impl fmt::Display for MioError {
                 write!(formatter, "resource token {token:?} is not registered")
             }
             Self::UnsupportedInterest { interest } => {
-                write!(formatter, "Mio cannot express interest {interest:?} on this target")
+                write!(
+                    formatter,
+                    "Mio cannot express interest {interest:?} on this target"
+                )
             }
             Self::TokenSpaceExhausted => {
                 formatter.write_str("Mio backend token identities are exhausted")

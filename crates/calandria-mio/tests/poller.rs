@@ -1,3 +1,5 @@
+//! Selector registration, wake, fencing, and readiness translation contracts.
+
 use std::{
     error::Error,
     io,
@@ -58,7 +60,7 @@ fn unsupported_interest_is_rejected_before_identity_consumption() -> Result<(), 
     let interest = unsupported_interest();
 
     let error = match poller.register(&mut listener, resource(0), interest) {
-        Ok(_) => panic!("unsupported interest must be rejected"),
+        Ok(()) => panic!("unsupported interest must be rejected"),
         Err(error) => error,
     };
 
@@ -78,7 +80,7 @@ fn failed_backend_registration_consumes_its_backend_identity() -> Result<(), Box
     let mut source = RejectingSource;
 
     let error = match poller.register(&mut source, resource(0), Interest::READABLE) {
-        Ok(_) => panic!("backend registration must fail"),
+        Ok(()) => panic!("backend registration must fail"),
         Err(error) => error,
     };
 
@@ -132,9 +134,8 @@ fn destination_capacity_is_validated_before_polling() -> Result<(), Box<dyn Erro
         .try_push(PollEvent::Wake)
         .unwrap_or_else(|error| panic!("test event must fit: {error}"));
 
-    let error = match poller.poll(Span::ZERO, &mut events) {
-        Ok(_) => panic!("undersized destination must be rejected"),
-        Err(error) => error,
+    let Err(error) = poller.poll(Span::ZERO, &mut events) else {
+        panic!("undersized destination must be rejected");
     };
 
     assert!(matches!(
@@ -167,7 +168,7 @@ fn registration_capacity_is_enforced_before_selector_mutation() -> Result<(), Bo
     poller.register(&mut first, resource(0), Interest::READABLE)?;
 
     let error = match poller.register(&mut second, resource(1), Interest::READABLE) {
-        Ok(_) => panic!("registration capacity must be enforced"),
+        Ok(()) => panic!("registration capacity must be enforced"),
         Err(error) => error,
     };
 

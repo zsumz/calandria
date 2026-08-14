@@ -10,8 +10,8 @@ use std::{
 
 use calandria::{
     DedicatedHost, DedicatedOutcome, Duty, EmbeddedHost, HostConfig, Interest, Moment,
-    MonotonicClock, Next, PollEvent, PollEvents, Readiness, ResourceOwnerId, ResourceTable,
-    PollReport, ResourceToken, Span, Turn, WaitOutcome, WorkCount,
+    MonotonicClock, Next, PollEvent, PollEvents, PollReport, ResourceOwnerId, ResourceTable,
+    ResourceToken, Span, Turn, WaitOutcome, WorkCount,
 };
 use calandria_mio::{MioError, MioPoller, MioPollerLimits};
 use mio::net::TcpStream;
@@ -41,8 +41,7 @@ impl FramedReactor {
     fn new(stream: TcpStream) -> Result<Self, BoxError> {
         let limits = MioPollerLimits::new(nonzero(32), nonzero(1));
         let mut poller = MioPoller::new(limits)?;
-        let mut resources =
-            ResourceTable::new(ResourceOwnerId::new(1), limits.registrations());
+        let mut resources = ResourceTable::new(ResourceOwnerId::new(1), limits.registrations());
         let token = resources.admit(1, Connection::new(stream))?;
         let (_, connection) = resources.get_mut(token)?;
         poller.register(&mut connection.stream, token, Interest::READABLE)?;
@@ -82,7 +81,8 @@ impl FramedReactor {
 
     fn observe_poll(&mut self, report: PollReport) {
         self.poll_saturated = report.saturated();
-        self.stale_backend_events = self.stale_backend_events
+        self.stale_backend_events = self
+            .stale_backend_events
             .saturating_add(to_u64(report.stale()));
     }
 
@@ -96,8 +96,7 @@ impl FramedReactor {
             match self.resources.get_mut(token) {
                 Ok((_, connection)) => connection.observe(readiness),
                 Err(_) => {
-                    self.stale_resource_events =
-                        self.stale_resource_events.saturating_add(1);
+                    self.stale_resource_events = self.stale_resource_events.saturating_add(1);
                 }
             }
         }
@@ -130,13 +129,13 @@ impl FramedReactor {
             }
         }
 
-        while budget > 0
-            && connection.write_ready
-            && connection.written < connection.write.len()
-        {
+        while budget > 0 && connection.write_ready && connection.written < connection.write.len() {
             budget -= 1;
             work += 1;
-            match connection.stream.write(&connection.write[connection.written..]) {
+            match connection
+                .stream
+                .write(&connection.write[connection.written..])
+            {
                 Ok(0) => return Err(io::Error::from(io::ErrorKind::WriteZero).into()),
                 Ok(written) => connection.written += written,
                 Err(source) if source.kind() == io::ErrorKind::WouldBlock => {
@@ -226,7 +225,8 @@ fn main() -> Result<(), BoxError> {
 
     println!(
         "echoed {echoed:?}; I/O: {}, stale backend/resource: {}/{}",
-        exit.duty().io_operations, exit.duty().stale_backend_events,
+        exit.duty().io_operations,
+        exit.duty().stale_backend_events,
         exit.duty().stale_resource_events,
     );
     Ok(())
@@ -251,6 +251,5 @@ fn nonzero(value: usize) -> NonZeroUsize {
 }
 
 fn to_u64(value: usize) -> u64 {
-    u64::try_from(value)
-        .unwrap_or_else(|_| panic!("example work count exceeds diagnostic domain"))
+    u64::try_from(value).unwrap_or_else(|_| panic!("example work count exceeds diagnostic domain"))
 }

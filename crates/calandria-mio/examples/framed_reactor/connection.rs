@@ -32,12 +32,10 @@ impl Connection {
     }
 
     pub(super) fn observe(&mut self, readiness: Readiness) {
-        self.read_ready |= readiness.is_readable()
-            || readiness.is_read_closed()
-            || readiness.is_error();
-        self.write_ready |= readiness.is_writable()
-            || readiness.is_write_closed()
-            || readiness.is_error();
+        self.read_ready |=
+            readiness.is_readable() || readiness.is_read_closed() || readiness.is_error();
+        self.write_ready |=
+            readiness.is_writable() || readiness.is_write_closed() || readiness.is_error();
     }
 
     pub(super) fn has_local_work(&self) -> bool {

@@ -3,8 +3,7 @@
 use std::sync::Arc;
 
 use calandria::{
-    Interest, PollEvent, PollEvents, PollReport, Poller, Readiness, ResourceToken, Span,
-    WakeHandle,
+    Interest, PollEvent, PollEvents, PollReport, Poller, ResourceToken, Span, WakeHandle,
 };
 use mio::{Events, Poll, Waker, event::Source};
 
@@ -139,7 +138,7 @@ impl MioPoller {
         let mut wakes = 0;
         let mut stale = 0;
 
-        for event in self.events.iter() {
+        for event in &self.events {
             observed += 1;
             let translated = if event.token() == WAKE_TOKEN {
                 wakes += 1;

@@ -46,12 +46,14 @@ impl Registrations {
     }
 
     pub(super) fn commit(&mut self, resource: ResourceToken, backend: Token) {
-        if self.contains(resource) || self.resource(backend).is_some() {
-            panic!("Mio registration identity invariant violated");
-        }
-        if self.entries.len() >= self.limits.registrations().get() {
-            panic!("Mio registration capacity invariant violated");
-        }
+        assert!(
+            !self.contains(resource) && self.resource(backend).is_none(),
+            "Mio registration identity invariant violated"
+        );
+        assert!(
+            self.entries.len() < self.limits.registrations().get(),
+            "Mio registration capacity invariant violated"
+        );
         if self
             .entries
             .last()
