@@ -9,9 +9,9 @@ use std::{
 };
 
 use calandria::{
-    DedicatedHost, DedicatedOutcome, Duty, EmbeddedHost, HostConfig, Interest, Moment,
-    MonotonicClock, Next, PollEvent, PollEvents, PollReport, ResourceOwnerId, ResourceTable,
-    ResourceToken, Span, Turn, WaitOutcome, WorkCount,
+    Duty, Interest, Moment, MonotonicClock, Next, PollEvent, PollEvents, PollReport, Reactor,
+    ReactorOutcome, ResourceOwnerId, ResourceTable, ResourceToken, Span, Turn, WaitOutcome,
+    WorkCount,
 };
 use calandria_mio::{MioError, MioPoller, MioPollerLimits};
 use mio::net::TcpStream;
@@ -210,13 +210,14 @@ fn main() -> Result<(), BoxError> {
     server.set_nonblocking(true)?;
 
     let reactor = FramedReactor::new(TcpStream::from_std(server))?;
-    let host = EmbeddedHost::new(reactor, MonotonicClock::new(), HostConfig::default());
+    let termination_wake = reactor.poller.wake_handle();
     let waiter = |reactor: &mut FramedReactor, maximum| reactor.wait_for_io(maximum);
-    let dedicated = DedicatedHost::spawn("framed-reactor", host, waiter)?;
-    let exit = dedicated
+    let reactor = Reactor::new(reactor, MonotonicClock::new(), waiter, termination_wake);
+    let exit = reactor
+        .spawn("framed-reactor")?
         .join()
         .map_err(|_| io::Error::other("framed reactor panicked"))?;
-    if !matches!(exit.outcome(), DedicatedOutcome::Stopped) {
+    if !matches!(exit.outcome(), ReactorOutcome::Stopped) {
         return Err(io::Error::other("framed reactor did not stop cleanly").into());
     }
     let echoed = client

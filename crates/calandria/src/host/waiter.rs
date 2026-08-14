@@ -22,7 +22,7 @@ pub enum WaitOutcome {
     Idle,
 }
 
-/// Bounded waiting strategy used by a dedicated host.
+/// Bounded waiting strategy used by an owned reactor.
 ///
 /// The waiter receives exclusive access to the owned duty. A simple thread
 /// parker may ignore it, while an I/O waiter may poll readiness directly into

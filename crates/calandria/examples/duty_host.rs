@@ -1,11 +1,10 @@
-//! Runs a bounded non-I/O frame owner on Calandria's dedicated host.
+//! Runs a bounded non-I/O frame owner as a singular Calandria reactor.
 
 use std::{convert::Infallible, error::Error, io, num::NonZeroUsize};
 
 use calandria::{
-    DedicatedHost, DedicatedOutcome, DrainStatus, Duty, EmbeddedHost, HostConfig, LaneLimits,
-    MailboxLimits, MailboxReceiver, Moment, MonotonicClock, Retained, RetainedBytes, Turn,
-    WorkCount, mailbox, thread_parker,
+    DrainStatus, Duty, LaneLimits, MailboxLimits, MailboxReceiver, Moment, MonotonicClock, Reactor,
+    ReactorOutcome, Retained, RetainedBytes, Turn, WorkCount, mailbox, thread_parker,
 };
 
 #[derive(Debug)]
@@ -70,18 +69,19 @@ impl Duty for FrameOwner {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let (parker, notifier) = thread_parker();
-    let wake = notifier.wake_handle();
+    let ingress_wake = notifier.wake_handle();
     let limits = MailboxLimits::new(
         LaneLimits::new(nonzero_usize(1), RetainedBytes::new(1)),
         LaneLimits::new(nonzero_usize(16), RetainedBytes::new(64 * 1_024)),
     );
-    let (sender, receiver) = mailbox(limits, wake);
-    let host = EmbeddedHost::new(
+    let (sender, receiver) = mailbox(limits, ingress_wake);
+    let reactor = Reactor::new(
         FrameOwner::new(receiver),
         MonotonicClock::new(),
-        HostConfig::default(),
+        parker,
+        notifier.wake_handle(),
     );
-    let dedicated = DedicatedHost::spawn("frame-owner", host, parker)?;
+    let handle = reactor.spawn("frame-owner")?;
 
     sender
         .try_send(Frame(b"alpha".to_vec()))
@@ -91,10 +91,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map_err(|_| io::Error::other("beta frame was rejected"))?;
     drop(sender);
 
-    let Ok(exit) = dedicated.join() else {
+    let Ok(exit) = handle.join() else {
         return Err(io::Error::other("frame owner panicked").into());
     };
-    if !matches!(exit.outcome(), DedicatedOutcome::Stopped) {
+    if !matches!(exit.outcome(), ReactorOutcome::Stopped) {
         return Err(io::Error::other("frame owner did not stop cleanly").into());
     }
 

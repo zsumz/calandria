@@ -3,8 +3,6 @@
 mod action;
 mod clock;
 mod config;
-#[cfg(feature = "std")]
-mod dedicated;
 mod duty;
 mod embedded;
 mod error;
@@ -17,10 +15,6 @@ pub use clock::Clock;
 #[cfg(feature = "std")]
 pub use clock::MonotonicClock;
 pub use config::HostConfig;
-#[cfg(feature = "std")]
-pub use dedicated::{
-    DedicatedExit, DedicatedFailure, DedicatedHost, DedicatedOutcome, DedicatedSnapshot,
-};
 pub use duty::Duty;
 pub use embedded::EmbeddedHost;
 pub use error::HostError;

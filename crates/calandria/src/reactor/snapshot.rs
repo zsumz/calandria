@@ -1,16 +1,16 @@
-//! Saturating observations for dedicated waiting.
+//! Saturating observations for one reactor's waiting loop.
 
-use super::super::WaitOutcome;
+use crate::WaitOutcome;
 
-/// Saturating observations for dedicated waiting.
+/// Saturating observations for one reactor's waiting loop.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct DedicatedSnapshot {
+pub struct ReactorSnapshot {
     waits: u64,
     notifications: u64,
     idle_returns: u64,
 }
 
-impl DedicatedSnapshot {
+impl ReactorSnapshot {
     /// Returns successful wait calls.
     pub const fn waits(self) -> u64 {
         self.waits
@@ -22,8 +22,6 @@ impl DedicatedSnapshot {
     }
 
     /// Returns waits that returned without an external notification.
-    ///
-    /// This count includes elapsed waits and permitted spurious returns.
     pub const fn idle_returns(self) -> u64 {
         self.idle_returns
     }

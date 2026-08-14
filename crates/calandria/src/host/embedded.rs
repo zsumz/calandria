@@ -95,8 +95,13 @@ where
     }
 
     #[cfg(feature = "std")]
-    pub(super) fn fail(&mut self) {
+    pub(crate) fn fail(&mut self) {
         self.snapshot.fail();
+    }
+
+    #[cfg(feature = "std")]
+    pub(crate) fn terminate(&mut self) {
+        self.snapshot.terminate();
     }
 
     fn observe_now(&mut self) -> Result<Moment, HostError<D::Error, C::Error>> {

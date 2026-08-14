@@ -19,9 +19,11 @@ const SPIN_LIMIT: usize = 64;
 pub trait WakeSource: Send + Sync + 'static {
     /// Requests that the owner return from its current wait.
     ///
-    /// Implementations should be nonblocking. Calandria serializes concurrent
-    /// requests while this method is in progress so a failed request cannot be
-    /// mistaken for a successful coalesced wake.
+    /// Implementations must be nonblocking, must not panic, and must not call
+    /// back into the publication or termination path that invoked them.
+    /// Calandria serializes concurrent requests while this method is in
+    /// progress so a failed request cannot be mistaken for a successful
+    /// coalesced wake.
     fn wake(&self) -> io::Result<()>;
 }
 

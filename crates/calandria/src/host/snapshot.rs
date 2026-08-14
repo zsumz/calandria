@@ -11,6 +11,8 @@ pub enum HostPhase {
     Running,
     /// The duty returned terminal [`crate::Next::Stop`] interest.
     Stopped,
+    /// The enclosing reactor was explicitly terminated.
+    Terminated,
     /// Clock, duty, or waiting execution failed.
     Failed,
 }
@@ -81,6 +83,11 @@ impl HostSnapshot {
 
     pub(super) fn stop(&mut self) {
         self.phase = HostPhase::Stopped;
+    }
+
+    #[cfg(feature = "std")]
+    pub(super) fn terminate(&mut self) {
+        self.phase = HostPhase::Terminated;
     }
 
     pub(super) fn fail(&mut self) {

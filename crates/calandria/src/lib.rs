@@ -20,6 +20,8 @@ pub mod host;
 pub mod io;
 #[cfg(feature = "std")]
 pub mod mailbox;
+#[cfg(feature = "std")]
+pub mod reactor;
 #[cfg(feature = "alloc")]
 pub mod resource;
 pub mod retained;
@@ -43,10 +45,7 @@ pub use host::{
     Clock, Duty, EmbeddedHost, HostAction, HostConfig, HostError, HostPhase, HostSnapshot, HostStep,
 };
 #[cfg(feature = "std")]
-pub use host::{
-    DedicatedExit, DedicatedFailure, DedicatedHost, DedicatedOutcome, DedicatedSnapshot,
-    MonotonicClock, ThreadNotifier, ThreadParker, WaitOutcome, Waiter, thread_parker,
-};
+pub use host::{MonotonicClock, ThreadNotifier, ThreadParker, WaitOutcome, Waiter, thread_parker};
 #[cfg(feature = "alloc")]
 pub use io::{
     Interest, PollEvent, PollEvents, PollEventsDrain, PollEventsError, PollReport, Poller,
@@ -56,6 +55,14 @@ pub use io::{
 pub use mailbox::{
     AdmissionFailure, DrainReport, DrainStatus, Lane, LaneLimits, LaneSnapshot, MailboxLimits,
     MailboxReceiver, MailboxSender, MailboxSnapshot, TrySendError, mailbox, mailbox_with,
+};
+#[cfg(feature = "std")]
+pub use reactor::{
+    Reactor, ReactorExit, ReactorFailure, ReactorGroup, ReactorGroupExit, ReactorGroupHandle,
+    ReactorGroupLimits, ReactorGroupMember, ReactorGroupMemberExit, ReactorGroupOutcome,
+    ReactorGroupSendError, ReactorGroupSendFailure, ReactorGroupSpawnError,
+    ReactorGroupSpawnFailure, ReactorGroupTermination, ReactorHandle, ReactorId, ReactorOutcome,
+    ReactorSnapshot, ReactorSpawnError, ReactorTermination, ReactorTerminationStatus,
 };
 #[cfg(feature = "alloc")]
 pub use resource::{
