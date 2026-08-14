@@ -116,7 +116,7 @@ struct InvalidScheduler;
 impl Scheduler for InvalidScheduler {
     type Error = Infallible;
 
-    fn choose(&mut self, _ready: ReadySet<'_>) -> Result<ActionKey, Self::Error> {
+    fn choose(&mut self, _now: Moment, _ready: ReadySet<'_>) -> Result<ActionKey, Self::Error> {
         Ok(ActionKey::turn(DutyId::new(999)))
     }
 }

@@ -4,8 +4,8 @@ use core::convert::Infallible;
 
 use calandria::{Moment, Retained, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
-    ActionContext, Delivery, DutyId, Fifo, Model, RoundRobin, Simulation, SimulationLimits, Step,
-    TimelineId, Topology,
+    ActionContext, Delivery, DutyId, EntropySeed, EntropyStreamId, Fifo, Model, RoundRobin, Seeded,
+    Simulation, SimulationLimits, Step, TimelineId, Topology,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -100,6 +100,32 @@ fn round_robin_rotates_owners_independently_of_action_order() {
             DutyId::new(2),
         ]
     );
+}
+
+#[test]
+fn seeded_scheduler_matches_the_version_one_golden_schedule() {
+    let mut simulation = Simulation::with_scheduler(
+        TimelineId::new(53),
+        Recorder::default(),
+        topology([1, 2, 3]),
+        SimulationLimits::default(),
+        Seeded::new(
+            EntropySeed::new(0x0123_4567_89ab_cdef),
+            EntropyStreamId::new(9),
+        ),
+    )
+    .unwrap_or_else(|error| panic!("simulation must build: {error}"));
+
+    for _ in 0..10 {
+        let _ = simulation
+            .step()
+            .unwrap_or_else(|error| panic!("seeded owner turn must run: {error}"));
+    }
+    assert_eq!(
+        simulation.model().turns.as_slice(),
+        &[1, 2, 3, 2, 1, 3, 2, 1, 2, 2].map(DutyId::new)
+    );
+    assert_eq!(simulation.scheduler().selections(), 10);
 }
 
 fn topology<const N: usize>(duties: [u32; N]) -> Topology {
