@@ -1,0 +1,24 @@
+[package]
+name = "calandria-mio"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Mio readiness adapter for Calandria reactors"
+readme = "README.md"
+keywords = ["reactor", "mio", "event-loop", "networking"]
+categories = ["concurrency", "network-programming"]
+publish = ["crates-io"]
+
+[dependencies]
+calandria = { workspace = true, features = ["std"] }
+mio.workspace = true
+
+[dev-dependencies]
+mio = { workspace = true, features = ["net"] }
+
+[lints]
+workspace = true

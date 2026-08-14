@@ -1,0 +1,20 @@
+[package]
+name = "calandria-sim"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Deterministic simulation for Calandria duties and reactors"
+readme = "README.md"
+keywords = ["simulation", "deterministic", "reactor", "testing"]
+categories = ["development-tools::testing", "concurrency", "no-std"]
+publish = ["crates-io"]
+
+[dependencies]
+calandria = { workspace = true, features = ["alloc"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,22 @@
+[package]
+name = "calandria"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Bounded duty, reactor, and lifecycle primitives"
+readme = "README.md"
+keywords = ["reactor", "event-loop", "runtime-neutral", "concurrency"]
+categories = ["concurrency", "network-programming", "no-std"]
+publish = ["crates-io"]
+
+[features]
+default = ["std"]
+alloc = []
+std = ["alloc"]
+
+[lints]
+workspace = true
