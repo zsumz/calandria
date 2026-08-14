@@ -10,23 +10,33 @@ use crate::{EventToken, TimelineId};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CancelFailure {
     /// The action reached its hard successful-effect count.
-    EffectCapacity { limit: NonZeroUsize },
+    EffectCapacity {
+        /// Configured effect-count limit.
+        limit: NonZeroUsize,
+    },
     /// The token belongs to another event timeline.
     ForeignTimeline {
+        /// Timeline owned by the action.
         expected: TimelineId,
+        /// Timeline carried by the rejected token.
         actual: TimelineId,
     },
     /// The event is no longer pending.
     NotPending(EventToken),
     /// Retaining the removed value for rollback overflowed accounting.
     RetainedByteOverflow {
+        /// Bytes already retained for rollback.
         current: RetainedBytes,
+        /// Bytes retained by the canceled event.
         event: RetainedBytes,
     },
     /// Retaining the removed value for rollback would exceed the action limit.
     RetainedByteCapacity {
+        /// Configured retained-effect byte limit.
         limit: RetainedBytes,
+        /// Bytes already retained for rollback.
         current: RetainedBytes,
+        /// Bytes retained by the canceled event.
         event: RetainedBytes,
     },
 }

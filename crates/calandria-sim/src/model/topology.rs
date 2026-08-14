@@ -13,9 +13,7 @@ pub struct Topology {
 
 impl Topology {
     /// Creates a nonempty static topology.
-    pub fn new(
-        duties: impl IntoIterator<Item = DutyId>,
-    ) -> Result<Self, TopologyError> {
+    pub fn new(duties: impl IntoIterator<Item = DutyId>) -> Result<Self, TopologyError> {
         let mut duties: Vec<_> = duties.into_iter().collect();
         duties.sort_unstable();
         if duties.is_empty() {

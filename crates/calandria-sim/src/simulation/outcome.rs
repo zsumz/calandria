@@ -14,7 +14,12 @@ pub enum Step<O> {
     /// One model action committed successfully.
     Action(ActionRecord<O>),
     /// No action was ready, so virtual time advanced exactly once.
-    TimeAdvanced { from: Moment, to: Moment },
+    TimeAdvanced {
+        /// Virtual moment before advancement.
+        from: Moment,
+        /// Earliest next meaningful virtual moment.
+        to: Moment,
+    },
     /// Live owners are waiting with no scheduled future progress.
     Quiescent(SimulationSnapshot),
     /// Every owner stopped and no delivery remains owned.
@@ -76,8 +81,4 @@ impl<E: fmt::Display> fmt::Display for RunError<E> {
     }
 }
 
-impl<E> core::error::Error for RunError<E>
-where
-    E: fmt::Debug + fmt::Display,
-{
-}
+impl<E> core::error::Error for RunError<E> where E: fmt::Debug + fmt::Display {}

@@ -1,9 +1,11 @@
+//! Ready-set ordering and scheduler-selection tests.
+
 use core::convert::Infallible;
 
 use calandria::{Moment, Retained, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
-    ActionContext, Delivery, DutyId, Fifo, Model, RoundRobin, Simulation,
-    SimulationLimits, Step, TimelineId, Topology,
+    ActionContext, Delivery, DutyId, Fifo, Model, RoundRobin, Simulation, SimulationLimits, Step,
+    TimelineId, Topology,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -64,14 +66,8 @@ fn fifo_preserves_equal_time_event_admission_across_owners() {
         .inject(DutyId::new(1), Event)
         .unwrap_or_else(|error| panic!("second event must fit: {error}"));
 
-    assert!(matches!(
-        simulation.step(),
-        Ok(Step::Action(_))
-    ));
-    assert!(matches!(
-        simulation.step(),
-        Ok(Step::Action(_))
-    ));
+    assert!(matches!(simulation.step(), Ok(Step::Action(_))));
+    assert!(matches!(simulation.step(), Ok(Step::Action(_))));
     assert_eq!(
         simulation.model().deliveries.as_slice(),
         &[DutyId::new(2), DutyId::new(1)]

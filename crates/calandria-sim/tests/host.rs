@@ -1,3 +1,5 @@
+//! Production duty contract tests driven by virtual time.
+
 use core::convert::Infallible;
 
 use calandria::{

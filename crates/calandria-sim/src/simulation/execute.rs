@@ -5,13 +5,13 @@ use alloc::vec::Vec;
 use calandria::{Next, Retained, Turn};
 
 use crate::{
-    ActionContext, ActionId, ActionKey, ActionKind, ActionMeta, ActionRecord, Delivery,
-    Model, Scheduler,
+    ActionContext, ActionId, ActionKey, ActionKind, ActionMeta, ActionRecord, Delivery, Model,
+    Scheduler,
 };
 
-use super::{
-    KernelFailure, Monitor, PoisonGuard, Simulation, SimulationView, StepError,
-};
+use super::{KernelFailure, Monitor, PoisonGuard, Simulation, SimulationView, StepError};
+
+type ActionResult<O, ME, NE, SE> = Result<ActionRecord<O>, StepError<ME, NE, SE>>;
 
 impl<M, S, N> Simulation<M, S, N>
 where
@@ -23,7 +23,7 @@ where
         &mut self,
         key: ActionKey,
         id: ActionId,
-    ) -> Result<ActionRecord<M::Observation>, StepError<M::Error, N::Error, S::Error>> {
+    ) -> ActionResult<M::Observation, M::Error, N::Error, S::Error> {
         match key.kind() {
             ActionKind::Delivery(token) => self.execute_delivery(key, id, token),
             ActionKind::Turn => self.execute_turn(key, id),
@@ -34,7 +34,7 @@ where
         &mut self,
         key: ActionKey,
         id: ActionId,
-    ) -> Result<ActionRecord<M::Observation>, StepError<M::Error, N::Error, S::Error>> {
+    ) -> ActionResult<M::Observation, M::Error, N::Error, S::Error> {
         let now = self.now();
         let meta = ActionMeta::new(id, key, now, None);
         let mut context = ActionContext::new(
@@ -75,7 +75,7 @@ where
         key: ActionKey,
         id: ActionId,
         token: crate::EventToken,
-    ) -> Result<ActionRecord<M::Observation>, StepError<M::Error, N::Error, S::Error>> {
+    ) -> ActionResult<M::Observation, M::Error, N::Error, S::Error> {
         let Some(routed) = self.timeline.cancel(token) else {
             self.fail();
             return Err(StepError::Kernel(KernelFailure::TimelineLostEvent(token)));
@@ -102,9 +102,7 @@ where
             self.limits.action_context(),
         );
         let guard = PoisonGuard::new(&self.poisoned);
-        let result = self
-            .model
-            .deliver(key.duty(), delivery, &mut context);
+        let result = self.model.deliver(key.duty(), delivery, &mut context);
         guard.disarm();
         let turn = match result {
             Ok(turn) => turn,
@@ -149,15 +147,10 @@ where
         meta: ActionMeta,
         turn: Turn,
         observations: Vec<M::Observation>,
-    ) -> Result<ActionRecord<M::Observation>, StepError<M::Error, N::Error, S::Error>> {
+    ) -> ActionResult<M::Observation, M::Error, N::Error, S::Error> {
         let record = ActionRecord::new(meta, turn, observations);
         let snapshot = self.snapshot();
-        let view = SimulationView::new(
-            &self.model,
-            &self.topology,
-            &self.states,
-            snapshot,
-        );
+        let view = SimulationView::new(&self.model, &self.topology, &self.states, snapshot);
         let guard = PoisonGuard::new(&self.poisoned);
         let result = self.monitor.after_action(view, &record);
         guard.disarm();

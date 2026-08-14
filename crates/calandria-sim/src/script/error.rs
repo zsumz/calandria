@@ -11,16 +11,28 @@ use super::ScriptStep;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ScriptBuildFailure {
     /// The script contains more steps than its hard count limit.
-    StepCapacity { limit: NonZeroUsize, actual: usize },
+    StepCapacity {
+        /// Configured step-count limit.
+        limit: NonZeroUsize,
+        /// Supplied step count.
+        actual: usize,
+    },
     /// The script contains more response outcomes than its hard count limit.
-    OutcomeCapacity { limit: NonZeroUsize, actual: usize },
+    OutcomeCapacity {
+        /// Configured outcome-count limit.
+        limit: NonZeroUsize,
+        /// Supplied outcome count.
+        actual: usize,
+    },
     /// Response-outcome count accounting overflowed.
     OutcomeCountOverflow,
     /// Variable retained-byte accounting overflowed.
     RetainedByteOverflow,
     /// The script exceeds its variable retained-byte limit.
     RetainedByteCapacity {
+        /// Configured retained-byte limit.
         limit: RetainedBytes,
+        /// Bytes retained by the supplied script.
         actual: RetainedBytes,
     },
 }
@@ -32,7 +44,10 @@ impl fmt::Display for ScriptBuildFailure {
                 write!(formatter, "script has {actual} steps but limit is {limit}")
             }
             Self::OutcomeCapacity { limit, actual } => {
-                write!(formatter, "script has {actual} outcomes but limit is {limit}")
+                write!(
+                    formatter,
+                    "script has {actual} outcomes but limit is {limit}"
+                )
             }
             Self::OutcomeCountOverflow => {
                 formatter.write_str("script outcome-count accounting overflowed")
@@ -60,10 +75,7 @@ pub struct ScriptBuildError<Q, R> {
 }
 
 impl<Q, R> ScriptBuildError<Q, R> {
-    pub(super) const fn new(
-        steps: Vec<ScriptStep<Q, R>>,
-        failure: ScriptBuildFailure,
-    ) -> Self {
+    pub(super) const fn new(steps: Vec<ScriptStep<Q, R>>, failure: ScriptBuildFailure) -> Self {
         Self { steps, failure }
     }
 

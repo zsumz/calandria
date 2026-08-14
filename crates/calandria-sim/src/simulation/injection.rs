@@ -4,9 +4,7 @@ use calandria::{Moment, Span};
 
 use crate::{DutyId, EventToken, Model, Routed, Scheduler};
 
-use super::{
-    InjectionError, InjectionFailure, Monitor, Simulation, SimulationPhase,
-};
+use super::{InjectionError, InjectionFailure, Monitor, Simulation, SimulationPhase};
 
 impl<M, S, N> Simulation<M, S, N>
 where

@@ -23,23 +23,20 @@ pub mod timeline;
 pub use action::{ActionId, ActionKey, ActionKind, ActionMeta, ActionRecord, ReadySet};
 pub use clock::{ClockError, VirtualClock};
 pub use event::{Delivery, EventId, EventToken, TimelineId};
-pub use model::{
-    ActionContext, CancelFailure, DutyId, Model, ObservationError,
-    ObservationFailure, SendError, SendFailure, Topology, TopologyError,
-};
 pub(crate) use model::Routed;
+pub use model::{
+    ActionContext, CancelFailure, DutyId, Model, ObservationError, ObservationFailure, SendError,
+    SendFailure, Topology, TopologyError,
+};
 pub use plan::Planned;
 pub use scheduler::{Fifo, RoundRobin, Scheduler};
 pub use script::{
-    ExactScript, Plan, ScriptBuildError, ScriptBuildFailure, ScriptFailure,
-    ScriptLimits, ScriptStep,
+    ExactScript, Plan, ScriptBuildError, ScriptBuildFailure, ScriptFailure, ScriptLimits,
+    ScriptStep,
 };
 pub use simulation::{
-    DutySnapshot, InjectionError, InjectionFailure, KernelFailure, LimitFailure,
-    Monitor, NoopMonitor, RunEnd, RunError, RunReport, Simulation,
-    SimulationBuildError, SimulationLimits, SimulationPhase,
-    SimulationSnapshot, SimulationView, Step, StepError,
+    DutySnapshot, InjectionError, InjectionFailure, KernelFailure, LimitFailure, Monitor,
+    NoopMonitor, RunEnd, RunError, RunReport, Simulation, SimulationBuildError, SimulationLimits,
+    SimulationPhase, SimulationSnapshot, SimulationView, Step, StepError,
 };
-pub use timeline::{
-    ScheduleError, ScheduleFailure, Timeline, TimelineLimits, TimelineSnapshot,
-};
+pub use timeline::{ScheduleError, ScheduleFailure, Timeline, TimelineLimits, TimelineSnapshot};

@@ -1,3 +1,5 @@
+//! Bounded timeline ownership, ordering, and accounting tests.
+
 use core::num::NonZeroUsize;
 
 use calandria::{Moment, Retained, RetainedBytes, Span};
@@ -18,9 +20,21 @@ impl Retained for Event {
 #[test]
 fn equal_time_events_are_delivered_in_insertion_order() {
     let mut timeline = Timeline::new(TimelineId::new(1), limits(8, 64));
-    assert!(timeline.schedule_after(Span::from_nanos(3), event(1, 1)).is_ok());
-    assert!(timeline.schedule_after(Span::from_nanos(3), event(2, 1)).is_ok());
-    assert!(timeline.schedule_after(Span::from_nanos(3), event(3, 1)).is_ok());
+    assert!(
+        timeline
+            .schedule_after(Span::from_nanos(3), event(1, 1))
+            .is_ok()
+    );
+    assert!(
+        timeline
+            .schedule_after(Span::from_nanos(3), event(2, 1))
+            .is_ok()
+    );
+    assert!(
+        timeline
+            .schedule_after(Span::from_nanos(3), event(3, 1))
+            .is_ok()
+    );
 
     let mut delivered = Vec::new();
     while let Some(next) = timeline.pop_next() {
@@ -36,9 +50,8 @@ fn count_rejection_preserves_event_ownership() {
     let mut timeline = Timeline::new(TimelineId::new(1), limits(1, 64));
     assert!(timeline.schedule_after(Span::ZERO, event(1, 1)).is_ok());
 
-    let error = match timeline.schedule_after(Span::ZERO, event(2, 1)) {
-        Ok(_) => panic!("event count limit must reject"),
-        Err(error) => error,
+    let Err(error) = timeline.schedule_after(Span::ZERO, event(2, 1)) else {
+        panic!("event count limit must reject");
     };
 
     assert!(matches!(
@@ -54,9 +67,8 @@ fn byte_rejection_preserves_event_ownership() {
     let mut timeline = Timeline::new(TimelineId::new(1), limits(2, 4));
     assert!(timeline.schedule_after(Span::ZERO, event(1, 4)).is_ok());
 
-    let error = match timeline.schedule_after(Span::ZERO, event(2, 1)) {
-        Ok(_) => panic!("retained-byte limit must reject"),
-        Err(error) => error,
+    let Err(error) = timeline.schedule_after(Span::ZERO, event(2, 1)) else {
+        panic!("retained-byte limit must reject");
     };
 
     assert!(matches!(
@@ -70,11 +82,14 @@ fn byte_rejection_preserves_event_ownership() {
 #[test]
 fn retained_byte_overflow_is_distinct_from_capacity() {
     let mut timeline = Timeline::new(TimelineId::new(1), limits(2, u64::MAX));
-    assert!(timeline.schedule_after(Span::ZERO, event(1, u64::MAX)).is_ok());
+    assert!(
+        timeline
+            .schedule_after(Span::ZERO, event(1, u64::MAX))
+            .is_ok()
+    );
 
-    let error = match timeline.schedule_after(Span::ZERO, event(2, 1)) {
-        Ok(_) => panic!("retained-byte addition must not wrap"),
-        Err(error) => error,
+    let Err(error) = timeline.schedule_after(Span::ZERO, event(2, 1)) else {
+        panic!("retained-byte addition must not wrap");
     };
 
     assert!(matches!(
@@ -82,15 +97,21 @@ fn retained_byte_overflow_is_distinct_from_capacity() {
         ScheduleFailure::RetainedByteOverflow { .. }
     ));
     assert_eq!(error.into_event(), event(2, 1));
-    assert_eq!(timeline.snapshot().retained_bytes(), RetainedBytes::new(u64::MAX));
+    assert_eq!(
+        timeline.snapshot().retained_bytes(),
+        RetainedBytes::new(u64::MAX)
+    );
 }
 
 #[test]
 fn relative_time_overflow_preserves_event_ownership() {
-    let mut timeline = Timeline::at(TimelineId::new(1), Moment::from_nanos(u64::MAX), limits(1, 1));
-    let error = match timeline.schedule_after(Span::from_nanos(1), event(1, 1)) {
-        Ok(_) => panic!("virtual time must not wrap"),
-        Err(error) => error,
+    let mut timeline = Timeline::at(
+        TimelineId::new(1),
+        Moment::from_nanos(u64::MAX),
+        limits(1, 1),
+    );
+    let Err(error) = timeline.schedule_after(Span::from_nanos(1), event(1, 1)) else {
+        panic!("virtual time must not wrap");
     };
 
     assert!(matches!(
@@ -135,9 +156,8 @@ fn zero_byte_timeline_accepts_only_fixed_size_events() {
     let mut timeline = Timeline::new(TimelineId::new(1), limits(2, 0));
     assert!(timeline.schedule_after(Span::ZERO, event(1, 0)).is_ok());
 
-    let error = match timeline.schedule_after(Span::ZERO, event(2, 1)) {
-        Ok(_) => panic!("retained event must be rejected"),
-        Err(error) => error,
+    let Err(error) = timeline.schedule_after(Span::ZERO, event(2, 1)) else {
+        panic!("retained event must be rejected");
     };
 
     assert!(matches!(
@@ -150,9 +170,8 @@ fn zero_byte_timeline_accepts_only_fixed_size_events() {
 #[test]
 fn scheduling_in_the_past_is_rejected_without_mutation() {
     let mut timeline = Timeline::at(TimelineId::new(1), Moment::from_nanos(10), limits(2, 8));
-    let error = match timeline.schedule_at(Moment::from_nanos(9), event(1, 1)) {
-        Ok(_) => panic!("past event must reject"),
-        Err(error) => error,
+    let Err(error) = timeline.schedule_at(Moment::from_nanos(9), event(1, 1)) else {
+        panic!("past event must reject");
     };
 
     assert!(matches!(

@@ -3,8 +3,8 @@ use core::convert::Infallible;
 
 use calandria::{Deadline, Duty, Moment, Turn, WorkCount};
 use calandria_sim::{
-    ActionContext, Delivery, DutyId, Model, RunEnd, Simulation,
-    SimulationLimits, TimelineId, Topology,
+    ActionContext, Delivery, DutyId, Model, RunEnd, Simulation, SimulationLimits, TimelineId,
+    Topology,
 };
 
 const MAINTENANCE: DutyId = DutyId::new(7);

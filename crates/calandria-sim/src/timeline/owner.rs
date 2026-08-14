@@ -63,11 +63,7 @@ impl<E: Retained> Timeline<E> {
     }
 
     /// Schedules an event at an absolute virtual moment.
-    pub fn schedule_at(
-        &mut self,
-        at: Moment,
-        event: E,
-    ) -> Result<EventToken, ScheduleError<E>> {
+    pub fn schedule_at(&mut self, at: Moment, event: E) -> Result<EventToken, ScheduleError<E>> {
         if at < self.now() {
             return Err(ScheduleError::new(
                 event,
@@ -141,11 +137,7 @@ impl<E: Retained> Timeline<E> {
         )
     }
 
-    fn schedule_validated(
-        &mut self,
-        at: Moment,
-        event: E,
-    ) -> Result<EventToken, ScheduleError<E>> {
+    fn schedule_validated(&mut self, at: Moment, event: E) -> Result<EventToken, ScheduleError<E>> {
         if self.events.len() >= self.limits.pending_events().get() {
             return Err(ScheduleError::new(
                 event,

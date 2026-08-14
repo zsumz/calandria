@@ -8,16 +8,24 @@ use calandria::RetainedBytes;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ObservationFailure {
     /// The action reached its observation-count limit.
-    Capacity { limit: NonZeroUsize },
+    Capacity {
+        /// Configured observation-count limit.
+        limit: NonZeroUsize,
+    },
     /// Observation retained-byte accounting overflowed.
     RetainedByteOverflow {
+        /// Bytes already retained by observations.
         current: RetainedBytes,
+        /// Bytes retained by the rejected observation.
         observation: RetainedBytes,
     },
     /// The action's retained-observation limit would be exceeded.
     RetainedByteCapacity {
+        /// Configured retained-observation byte limit.
         limit: RetainedBytes,
+        /// Bytes already retained by observations.
         current: RetainedBytes,
+        /// Bytes retained by the rejected observation.
         observation: RetainedBytes,
     },
 }
@@ -26,7 +34,10 @@ impl fmt::Display for ObservationFailure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Capacity { limit } => {
-                write!(formatter, "action observation capacity of {limit} was reached")
+                write!(
+                    formatter,
+                    "action observation capacity of {limit} was reached"
+                )
             }
             Self::RetainedByteOverflow {
                 current,

@@ -37,51 +37,56 @@ impl SimulationLimits {
     }
 
     /// Replaces the topology capacity.
+    #[must_use]
     pub const fn with_max_duties(mut self, limit: NonZeroUsize) -> Self {
         self.max_duties = limit;
         self
     }
 
     /// Replaces the successful-effect count for one action.
+    #[must_use]
     pub const fn with_effects_per_action(mut self, limit: NonZeroUsize) -> Self {
         self.effects_per_action = limit;
         self
     }
 
     /// Replaces the retained-effect byte limit for one action.
+    #[must_use]
     pub const fn with_effect_bytes_per_action(mut self, limit: RetainedBytes) -> Self {
         self.effect_bytes_per_action = limit;
         self
     }
 
     /// Replaces the observation count for one action.
+    #[must_use]
     pub const fn with_observations_per_action(mut self, limit: NonZeroUsize) -> Self {
         self.observations_per_action = limit;
         self
     }
 
     /// Replaces the retained-observation byte limit for one action.
-    pub const fn with_observation_bytes_per_action(
-        mut self,
-        limit: RetainedBytes,
-    ) -> Self {
+    #[must_use]
+    pub const fn with_observation_bytes_per_action(mut self, limit: RetainedBytes) -> Self {
         self.observation_bytes_per_action = limit;
         self
     }
 
     /// Replaces the total committed or failed model-action limit.
+    #[must_use]
     pub const fn with_total_actions(mut self, limit: NonZeroU64) -> Self {
         self.total_actions = limit;
         self
     }
 
     /// Replaces the zero-time action limit used to detect suspected livelock.
+    #[must_use]
     pub const fn with_actions_per_moment(mut self, limit: NonZeroU64) -> Self {
         self.actions_per_moment = limit;
         self
     }
 
     /// Replaces the maximum observable virtual moment.
+    #[must_use]
     pub const fn with_max_virtual_time(mut self, limit: Moment) -> Self {
         self.max_virtual_time = limit;
         self

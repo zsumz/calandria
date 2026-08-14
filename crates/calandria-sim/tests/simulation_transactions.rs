@@ -1,3 +1,5 @@
+//! Transactional effect commit and rollback tests.
+
 use core::fmt;
 
 use calandria::{Moment, Retained, RetainedBytes, Span, Turn, WorkCount};
@@ -83,9 +85,8 @@ fn failed_action_rolls_back_send_and_cancellation_together() {
         .inject(DutyId::new(0), Event::Cancel(future))
         .unwrap_or_else(|error| panic!("command must fit: {error}"));
 
-    let error = match simulation.step() {
-        Ok(_) => panic!("simulation step must fail"),
-        Err(error) => error,
+    let Err(error) = simulation.step() else {
+        panic!("simulation step must fail");
     };
     assert!(matches!(error, StepError::Model { .. }));
     assert_eq!(simulation.phase(), SimulationPhase::Failed);
@@ -191,9 +192,8 @@ fn stop_with_pending_owned_work_fails_closed_and_rolls_back() {
     )
     .unwrap_or_else(|error| panic!("simulation must build: {error}"));
 
-    let error = match simulation.step() {
-        Ok(_) => panic!("simulation step must fail"),
-        Err(error) => error,
+    let Err(error) = simulation.step() else {
+        panic!("simulation step must fail");
     };
     assert!(matches!(error, StepError::Kernel(_)));
     assert_eq!(simulation.phase(), SimulationPhase::Failed);

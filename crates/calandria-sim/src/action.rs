@@ -142,11 +142,7 @@ pub struct ActionRecord<O> {
 }
 
 impl<O> ActionRecord<O> {
-    pub(crate) fn new(
-        meta: ActionMeta,
-        turn: Turn,
-        observations: Vec<O>,
-    ) -> Self {
+    pub(crate) fn new(meta: ActionMeta, turn: Turn, observations: Vec<O>) -> Self {
         Self {
             meta,
             turn,

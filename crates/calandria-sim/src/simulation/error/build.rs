@@ -22,7 +22,12 @@ pub enum SimulationBuildError {
         events: NonZeroUsize,
     },
     /// Initial virtual time is already beyond the run ceiling.
-    InitialTimeBeyondLimit { initial: Moment, limit: Moment },
+    InitialTimeBeyondLimit {
+        /// Requested initial virtual moment.
+        initial: Moment,
+        /// Configured maximum virtual moment.
+        limit: Moment,
+    },
 }
 
 impl fmt::Display for SimulationBuildError {

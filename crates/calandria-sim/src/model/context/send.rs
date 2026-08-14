@@ -9,11 +9,7 @@ use crate::model::{DutyId, Routed, SendError, SendFailure};
 
 impl<E: Retained, O: Retained> ActionContext<'_, E, O> {
     /// Schedules an immediate typed delivery.
-    pub fn send(
-        &mut self,
-        target: DutyId,
-        event: E,
-    ) -> Result<EventToken, SendError<E>> {
+    pub fn send(&mut self, target: DutyId, event: E) -> Result<EventToken, SendError<E>> {
         self.send_at(target, self.now, event)
     }
 
@@ -61,16 +57,10 @@ impl<E: Retained, O: Retained> ActionContext<'_, E, O> {
             ));
         }
         if !self.topology.contains(target) {
-            return Err(SendError::new(
-                event,
-                SendFailure::UnknownTarget(target),
-            ));
+            return Err(SendError::new(event, SendFailure::UnknownTarget(target)));
         }
         if self.stopped.contains(&target) {
-            return Err(SendError::new(
-                event,
-                SendFailure::TargetStopped(target),
-            ));
+            return Err(SendError::new(event, SendFailure::TargetStopped(target)));
         }
         if at > self.limits.max_time {
             return Err(SendError::new(
@@ -84,12 +74,7 @@ impl<E: Retained, O: Retained> ActionContext<'_, E, O> {
         self.admit(target, at, event)
     }
 
-    fn admit(
-        &mut self,
-        target: DutyId,
-        at: Moment,
-        event: E,
-    ) -> Result<EventToken, SendError<E>> {
+    fn admit(&mut self, target: DutyId, at: Moment, event: E) -> Result<EventToken, SendError<E>> {
         let retained = event.retained_bytes();
         let Some(next_bytes) = self.effect_bytes.checked_add(retained) else {
             return Err(SendError::new(
@@ -116,10 +101,7 @@ impl<E: Retained, O: Retained> ActionContext<'_, E, O> {
             Ok(token) => token,
             Err(error) => {
                 let (routed, failure) = error.into_parts();
-                return Err(SendError::new(
-                    routed.event,
-                    SendFailure::Timeline(failure),
-                ));
+                return Err(SendError::new(routed.event, SendFailure::Timeline(failure)));
             }
         };
         self.effects += 1;

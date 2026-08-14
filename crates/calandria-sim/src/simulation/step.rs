@@ -2,14 +2,14 @@
 
 use calandria::Next;
 
-use crate::{
-    ActionId, ActionKey, Model, ReadySet, Scheduler,
-};
+use crate::{ActionId, ActionKey, Model, ReadySet, Scheduler};
 
 use super::{
-    KernelFailure, LimitFailure, Monitor, PoisonGuard, Simulation,
-    SimulationPhase, Step, StepError,
+    KernelFailure, LimitFailure, Monitor, PoisonGuard, Simulation, SimulationPhase, Step, StepError,
 };
+
+type StepResult<O, ME, NE, SE> = Result<Step<O>, StepError<ME, NE, SE>>;
+type StepGuardResult<ME, NE, SE> = Result<(), StepError<ME, NE, SE>>;
 
 impl<M, S, N> Simulation<M, S, N>
 where
@@ -18,9 +18,7 @@ where
     N: Monitor<M>,
 {
     /// Executes one model action, time advance, or terminal observation.
-    pub fn step(
-        &mut self,
-    ) -> Result<Step<M::Observation>, StepError<M::Error, N::Error, S::Error>> {
+    pub fn step(&mut self) -> StepResult<M::Observation, M::Error, N::Error, S::Error> {
         if self.poisoned.get() {
             return Err(StepError::Poisoned);
         }
@@ -107,9 +105,7 @@ where
         Ok(())
     }
 
-    fn advance_or_finish(
-        &mut self,
-    ) -> Result<Step<M::Observation>, StepError<M::Error, N::Error, S::Error>> {
+    fn advance_or_finish(&mut self) -> StepResult<M::Observation, M::Error, N::Error, S::Error> {
         if self.stopped.len() == self.topology.len() {
             let pending = self
                 .timeline
@@ -132,9 +128,7 @@ where
         };
         if next <= now {
             self.fail();
-            return Err(StepError::Kernel(KernelFailure::NoFutureProgress {
-                now,
-            }));
+            return Err(StepError::Kernel(KernelFailure::NoFutureProgress { now }));
         }
         if next > self.limits.max_virtual_time() {
             let failure = LimitFailure::VirtualTime {
@@ -146,7 +140,10 @@ where
         }
         self.timeline.advance_to(next);
         self.actions_at_moment = 0;
-        Ok(Step::TimeAdvanced { from: now, to: next })
+        Ok(Step::TimeAdvanced {
+            from: now,
+            to: next,
+        })
     }
 
     fn next_deadline(&self) -> Option<calandria::Moment> {
@@ -159,9 +156,7 @@ where
             .min()
     }
 
-    fn enforce_action_limits(
-        &self,
-    ) -> Result<(), StepError<M::Error, N::Error, S::Error>> {
+    fn enforce_action_limits(&self) -> StepGuardResult<M::Error, N::Error, S::Error> {
         if self.actions >= self.limits.total_actions().get() {
             return Err(StepError::Limit(LimitFailure::TotalActions {
                 limit: self.limits.total_actions(),

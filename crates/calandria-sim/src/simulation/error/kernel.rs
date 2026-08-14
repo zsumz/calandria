@@ -11,28 +11,43 @@ use crate::{DutyId, EventToken};
 pub enum KernelFailure {
     /// A pending event names a target outside the static topology.
     UnknownDeliveryTarget {
+        /// Exact pending event token.
         token: EventToken,
+        /// Unknown target carried by the event.
         target: DutyId,
     },
     /// A pending event targets a permanently stopped owner.
     DeliveryTargetsStopped {
+        /// Exact pending event token.
         token: EventToken,
+        /// Stopped delivery target.
         target: DutyId,
     },
     /// Selected metadata and retained event ownership disagree.
     DeliveryTargetMismatch {
+        /// Exact selected event token.
         token: EventToken,
+        /// Target named by the selected action.
         expected: DutyId,
+        /// Target owned by the retained event.
         actual: DutyId,
     },
     /// A selected event disappeared before exact delivery.
     TimelineLostEvent(EventToken),
     /// An owner attempted to stop while work still targeted it.
-    StoppedWithPending { duty: DutyId, pending: usize },
+    StoppedWithPending {
+        /// Owner that attempted to stop.
+        duty: DutyId,
+        /// Deliveries still targeting the owner.
+        pending: usize,
+    },
     /// All owner action identities have been consumed.
     ActionIdsExhausted,
     /// No ready action or strictly later virtual moment was available.
-    NoFutureProgress { now: Moment },
+    NoFutureProgress {
+        /// Virtual moment at which progress failed.
+        now: Moment,
+    },
 }
 
 impl fmt::Display for KernelFailure {
@@ -62,7 +77,11 @@ impl fmt::Display for KernelFailure {
                 actual.get()
             ),
             Self::TimelineLostEvent(token) => {
-                write!(formatter, "event {} disappeared before delivery", token.id().get())
+                write!(
+                    formatter,
+                    "event {} disappeared before delivery",
+                    token.id().get()
+                )
             }
             Self::StoppedWithPending { duty, pending } => write!(
                 formatter,
@@ -85,11 +104,24 @@ impl core::error::Error for KernelFailure {}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LimitFailure {
     /// The total action limit was reached.
-    TotalActions { limit: NonZeroU64 },
+    TotalActions {
+        /// Configured total action limit.
+        limit: NonZeroU64,
+    },
     /// Too many actions ran without virtual time advancing.
-    ActionsAtMoment { at: Moment, limit: NonZeroU64 },
+    ActionsAtMoment {
+        /// Virtual moment at which the limit was reached.
+        at: Moment,
+        /// Configured zero-time action limit.
+        limit: NonZeroU64,
+    },
     /// The next meaningful moment exceeds the configured ceiling.
-    VirtualTime { next: Moment, limit: Moment },
+    VirtualTime {
+        /// Next meaningful virtual moment.
+        next: Moment,
+        /// Configured maximum virtual moment.
+        limit: Moment,
+    },
 }
 
 impl fmt::Display for LimitFailure {

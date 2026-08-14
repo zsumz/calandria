@@ -14,11 +14,7 @@ pub(crate) struct Routed<E> {
 }
 
 impl<E> Routed<E> {
-    pub(crate) const fn new(
-        target: DutyId,
-        cause: Option<ActionId>,
-        event: E,
-    ) -> Self {
+    pub(crate) const fn new(target: DutyId, cause: Option<ActionId>, event: E) -> Self {
         Self {
             target,
             cause,

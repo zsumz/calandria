@@ -11,12 +11,16 @@ use super::{KernelFailure, LimitFailure};
 pub enum StepError<ModelError, MonitorError, SchedulerError> {
     /// Consumer model action failed after its staged effects rolled back.
     Model {
+        /// Action that invoked the model.
         action: ActionMeta,
+        /// Consumer model failure.
         source: ModelError,
     },
     /// A post-commit monitor rejected the resulting state.
     Monitor {
+        /// Committed action rejected by the monitor.
         action: ActionMeta,
+        /// Consumer monitor failure.
         source: MonitorError,
     },
     /// Scheduler policy failed before model execution.
@@ -33,9 +37,7 @@ pub enum StepError<ModelError, MonitorError, SchedulerError> {
     Inactive(SimulationPhase),
 }
 
-impl<ME: fmt::Display, NE: fmt::Display, SE: fmt::Display> fmt::Display
-    for StepError<ME, NE, SE>
-{
+impl<ME: fmt::Display, NE: fmt::Display, SE: fmt::Display> fmt::Display for StepError<ME, NE, SE> {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Model { action, source } => write!(

@@ -4,10 +4,7 @@ use alloc::{collections::VecDeque, vec::Vec};
 
 use calandria::{Retained, RetainedBytes};
 
-use super::{
-    Plan, ScriptBuildError, ScriptBuildFailure, ScriptFailure, ScriptLimits,
-    ScriptStep,
-};
+use super::{Plan, ScriptBuildError, ScriptBuildFailure, ScriptFailure, ScriptLimits, ScriptStep};
 
 /// Count- and byte-bounded exact finite capability script.
 #[derive(Debug)]
@@ -125,9 +122,7 @@ struct MeasuredStep<Q, R> {
     retained: RetainedBytes,
 }
 
-fn count_outcomes<Q, R>(
-    steps: &[ScriptStep<Q, R>],
-) -> Result<usize, ScriptBuildFailure> {
+fn count_outcomes<Q, R>(steps: &[ScriptStep<Q, R>]) -> Result<usize, ScriptBuildFailure> {
     let mut total = 0usize;
     for step in steps {
         let Some(next) = total.checked_add(step.response().len()) else {
@@ -156,9 +151,7 @@ fn measure_steps<Q: Retained, R: Retained>(
     Ok((total, measurements))
 }
 
-fn measure_step<Q: Retained, R: Retained>(
-    step: &ScriptStep<Q, R>,
-) -> Option<RetainedBytes> {
+fn measure_step<Q: Retained, R: Retained>(step: &ScriptStep<Q, R>) -> Option<RetainedBytes> {
     let mut total = step.expected().retained_bytes();
     for outcome in step.response().outcomes() {
         total = total.checked_add(outcome.outcome().retained_bytes())?;

@@ -12,16 +12,24 @@ use crate::model::DutyId;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SendFailure {
     /// The action reached its hard successful-effect count.
-    EffectCapacity { limit: NonZeroUsize },
+    EffectCapacity {
+        /// Configured effect-count limit.
+        limit: NonZeroUsize,
+    },
     /// Retained effect accounting overflowed.
     RetainedByteOverflow {
+        /// Bytes already retained by staged effects.
         current: RetainedBytes,
+        /// Bytes retained by the rejected event.
         event: RetainedBytes,
     },
     /// The action's retained-effect limit would be exceeded.
     RetainedByteCapacity {
+        /// Configured retained-effect byte limit.
         limit: RetainedBytes,
+        /// Bytes already retained by staged effects.
         current: RetainedBytes,
+        /// Bytes retained by the rejected event.
         event: RetainedBytes,
     },
     /// The target is not part of the static topology.
@@ -29,9 +37,19 @@ pub enum SendFailure {
     /// The target has permanently stopped.
     TargetStopped(DutyId),
     /// A requested relative delay overflowed virtual time.
-    TimeOverflow { current: Moment, delay: Span },
+    TimeOverflow {
+        /// Current virtual moment.
+        current: Moment,
+        /// Requested relative delay.
+        delay: Span,
+    },
     /// The event exceeds the simulation's virtual-time ceiling.
-    BeyondTimeLimit { requested: Moment, limit: Moment },
+    BeyondTimeLimit {
+        /// Requested delivery moment.
+        requested: Moment,
+        /// Configured maximum virtual moment.
+        limit: Moment,
+    },
     /// The bounded timeline rejected the event.
     Timeline(ScheduleFailure),
 }

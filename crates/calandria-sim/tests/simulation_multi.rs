@@ -1,9 +1,11 @@
+//! Multi-duty deterministic scheduling and delivery tests.
+
 use core::convert::Infallible;
 
 use calandria::{Moment, Retained, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
-    ActionContext, Delivery, DutyId, Model, RoundRobin, RunEnd, Simulation,
-    SimulationLimits, TimelineId, Topology,
+    ActionContext, Delivery, DutyId, Model, RoundRobin, RunEnd, Simulation, SimulationLimits,
+    TimelineId, Topology,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

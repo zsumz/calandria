@@ -6,9 +6,7 @@ mod owner;
 mod plan;
 mod step;
 
-pub use error::{
-    ScriptBuildError, ScriptBuildFailure, ScriptFailure,
-};
+pub use error::{ScriptBuildError, ScriptBuildFailure, ScriptFailure};
 pub use limits::ScriptLimits;
 pub use owner::ExactScript;
 pub use plan::Plan;

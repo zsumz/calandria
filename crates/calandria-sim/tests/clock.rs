@@ -1,3 +1,5 @@
+//! Virtual monotonic clock boundary tests.
+
 use calandria::{Moment, Span};
 use calandria_sim::{ClockError, VirtualClock};
 

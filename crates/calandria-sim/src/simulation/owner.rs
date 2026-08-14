@@ -9,13 +9,12 @@ use core::cell::Cell;
 use calandria::Moment;
 
 use crate::{
-    ActionKey, DutyId, Fifo, Model, NoopMonitor, Routed, Scheduler, Timeline,
-    TimelineId, Topology,
+    ActionKey, DutyId, Fifo, Model, NoopMonitor, Routed, Scheduler, Timeline, TimelineId, Topology,
 };
 
 use super::{
-    DutySnapshot, DutyState, Monitor, SimulationBuildError, SimulationLimits,
-    SimulationPhase, SimulationSnapshot,
+    DutySnapshot, DutyState, Monitor, SimulationBuildError, SimulationLimits, SimulationPhase,
+    SimulationSnapshot,
 };
 
 /// Deterministic execution owner for one static set of bounded duties.

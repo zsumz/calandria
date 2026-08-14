@@ -1,9 +1,11 @@
+//! Single-duty deterministic lifecycle tests.
+
 use core::convert::Infallible;
 
 use calandria::{Deadline, Duty, Moment, Retained, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
-    ActionContext, Delivery, DutyId, Model, RunEnd, Simulation, SimulationLimits,
-    TimelineId, Topology,
+    ActionContext, Delivery, DutyId, Model, RunEnd, Simulation, SimulationLimits, TimelineId,
+    Topology,
 };
 
 #[derive(Debug)]

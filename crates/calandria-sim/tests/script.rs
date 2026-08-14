@@ -1,9 +1,10 @@
+//! Exact finite capability script limit and matching tests.
+
 use core::num::NonZeroUsize;
 
 use calandria::{Retained, RetainedBytes, Span};
 use calandria_sim::{
-    ExactScript, Plan, Planned, ScriptBuildFailure, ScriptFailure, ScriptLimits,
-    ScriptStep,
+    ExactScript, Plan, Planned, ScriptBuildFailure, ScriptFailure, ScriptLimits, ScriptStep,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -26,14 +27,20 @@ fn mismatch_is_non_consuming_and_exhaustion_is_explicit() {
     let mut script = ExactScript::try_new(limits, steps)
         .unwrap_or_else(|error| panic!("script must fit: {error}"));
 
-    assert_eq!(script.respond(&Value(vec![9])), Err(ScriptFailure::Mismatch));
+    assert_eq!(
+        script.respond(&Value(vec![9])),
+        Err(ScriptFailure::Mismatch)
+    );
     assert_eq!(script.len(), 1);
     let response = script
         .respond(&Value(vec![1]))
         .unwrap_or_else(|error| panic!("exact request must match: {error}"));
     assert_eq!(response.len(), 1);
     assert!(script.is_empty());
-    assert_eq!(script.respond(&Value(vec![1])), Err(ScriptFailure::Exhausted));
+    assert_eq!(
+        script.respond(&Value(vec![1])),
+        Err(ScriptFailure::Exhausted)
+    );
 }
 
 #[test]
@@ -43,9 +50,8 @@ fn rejected_construction_returns_every_step() {
         ScriptStep::new(Value(vec![1]), Plan::empty()),
         ScriptStep::new(Value(vec![2]), Plan::empty()),
     ];
-    let error = match ExactScript::<Value, Value>::try_new(limits, steps) {
-        Ok(_) => panic!("script construction must fail"),
-        Err(error) => error,
+    let Err(error) = ExactScript::<Value, Value>::try_new(limits, steps) else {
+        panic!("script construction must fail");
     };
     assert!(matches!(
         error.failure(),
@@ -81,9 +87,8 @@ fn zero_byte_outcomes_are_still_count_bounded() {
             Planned::new(Span::ZERO, Value(Vec::new())),
         ]),
     )];
-    let error = match ExactScript::<Value, Value>::try_new(limits, steps) {
-        Ok(_) => panic!("script construction must fail"),
-        Err(error) => error,
+    let Err(error) = ExactScript::<Value, Value>::try_new(limits, steps) else {
+        panic!("script construction must fail");
     };
     assert!(matches!(
         error.failure(),

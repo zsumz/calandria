@@ -4,7 +4,7 @@ use calandria::{Moment, Retained, RetainedBytes};
 
 use crate::{EventId, EventToken};
 
-use super::{Entry, Timeline};
+use super::{Timeline, owner::Entry};
 
 impl<E: Retained> Timeline<E> {
     pub(crate) fn advance_to(&mut self, requested: Moment) {
@@ -38,14 +38,21 @@ impl<E: Retained> Timeline<E> {
     }
 
     pub(crate) fn pending(&self) -> impl Iterator<Item = (EventToken, &E)> + '_ {
-        self.events.iter().map(move |((at, id), entry)| {
-            (EventToken::new(self.id, *id, *at), &entry.event)
-        })
+        self.events
+            .iter()
+            .map(move |((at, id), entry)| (EventToken::new(self.id, *id, *at), &entry.event))
     }
 
     pub(crate) fn restore(&mut self, token: EventToken, event: E) {
-        assert_eq!(token.timeline(), self.id, "restored event must belong to timeline");
-        assert!(token.at() >= self.now(), "restored event cannot be in the past");
+        assert_eq!(
+            token.timeline(),
+            self.id,
+            "restored event must belong to timeline"
+        );
+        assert!(
+            token.at() >= self.now(),
+            "restored event cannot be in the past"
+        );
         assert!(
             self.events.len() < self.limits.pending_events().get(),
             "restored event must fit its previously owned count"

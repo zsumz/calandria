@@ -18,9 +18,19 @@ pub enum InjectionFailure {
     /// The target has permanently stopped.
     TargetStopped(DutyId),
     /// Relative virtual-time arithmetic overflowed.
-    TimeOverflow { current: Moment, delay: Span },
+    TimeOverflow {
+        /// Current virtual moment.
+        current: Moment,
+        /// Requested relative delay.
+        delay: Span,
+    },
     /// The requested moment exceeds the configured ceiling.
-    BeyondTimeLimit { requested: Moment, limit: Moment },
+    BeyondTimeLimit {
+        /// Requested delivery moment.
+        requested: Moment,
+        /// Configured maximum virtual moment.
+        limit: Moment,
+    },
     /// The bounded event timeline rejected admission.
     Timeline(ScheduleFailure),
 }

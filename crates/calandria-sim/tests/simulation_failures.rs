@@ -1,3 +1,5 @@
+//! Deterministic simulation failure and terminal-state tests.
+
 use core::{
     convert::Infallible,
     fmt,
@@ -6,10 +8,9 @@ use core::{
 
 use calandria::{Deadline, Moment, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
-    ActionKey, ActionRecord, ActionContext, Delivery, DutyId, Fifo, LimitFailure,
-    Model, Monitor, NoopMonitor, ReadySet, Scheduler, Simulation,
-    SimulationBuildError, SimulationLimits, SimulationPhase, SimulationView,
-    StepError, TimelineId, TimelineLimits, Topology,
+    ActionContext, ActionKey, ActionRecord, Delivery, DutyId, Fifo, LimitFailure, Model, Monitor,
+    NoopMonitor, ReadySet, Scheduler, Simulation, SimulationBuildError, SimulationLimits,
+    SimulationPhase, SimulationView, StepError, TimelineId, TimelineLimits, Topology,
 };
 
 #[derive(Debug)]
@@ -44,22 +45,16 @@ fn zero_time_livelock_is_bounded_explicitly() {
     let limits = SimulationLimits::default().with_actions_per_moment(
         NonZeroU64::new(3).unwrap_or_else(|| panic!("test limit must be nonzero")),
     );
-    let mut simulation = Simulation::new(
-        TimelineId::new(41),
-        AlwaysRunnable,
-        one_duty(),
-        limits,
-    )
-    .unwrap_or_else(|error| panic!("simulation must build: {error}"));
+    let mut simulation = Simulation::new(TimelineId::new(41), AlwaysRunnable, one_duty(), limits)
+        .unwrap_or_else(|error| panic!("simulation must build: {error}"));
 
     for _ in 0..3 {
         let _ = simulation
             .step()
             .unwrap_or_else(|error| panic!("bounded action must run: {error}"));
     }
-    let error = match simulation.step() {
-        Ok(_) => panic!("simulation step must fail"),
-        Err(error) => error,
+    let Err(error) = simulation.step() else {
+        panic!("simulation step must fail");
     };
     assert!(matches!(
         error,
@@ -107,9 +102,8 @@ fn monitor_observes_committed_state_then_fails_terminally() {
     .unwrap_or_else(|error| panic!("simulation must build: {error}"));
     let mut simulation = simulation.with_monitor(RejectFirst);
 
-    let error = match simulation.step() {
-        Ok(_) => panic!("simulation step must fail"),
-        Err(error) => error,
+    let Err(error) = simulation.step() else {
+        panic!("simulation step must fail");
     };
     assert!(matches!(error, StepError::Monitor { .. }));
     assert_eq!(simulation.phase(), SimulationPhase::Failed);
@@ -138,9 +132,8 @@ fn scheduler_cannot_invent_an_action() {
     )
     .unwrap_or_else(|error| panic!("simulation must build: {error}"));
 
-    let error = match simulation.step() {
-        Ok(_) => panic!("simulation step must fail"),
-        Err(error) => error,
+    let Err(error) = simulation.step() else {
+        panic!("simulation step must fail");
     };
     assert!(matches!(error, StepError::InvalidSelection(_)));
     assert_eq!(simulation.phase(), SimulationPhase::Failed);
@@ -179,22 +172,15 @@ impl Model for FutureDeadline {
 
 #[test]
 fn virtual_time_limit_fails_terminally() {
-    let limits = SimulationLimits::default()
-        .with_max_virtual_time(Moment::from_nanos(5));
-    let mut simulation = Simulation::new(
-        TimelineId::new(44),
-        FutureDeadline,
-        one_duty(),
-        limits,
-    )
-    .unwrap_or_else(|error| panic!("simulation must build: {error}"));
+    let limits = SimulationLimits::default().with_max_virtual_time(Moment::from_nanos(5));
+    let mut simulation = Simulation::new(TimelineId::new(44), FutureDeadline, one_duty(), limits)
+        .unwrap_or_else(|error| panic!("simulation must build: {error}"));
     let _ = simulation
         .step()
         .unwrap_or_else(|error| panic!("initial owner turn must run: {error}"));
 
-    let error = match simulation.step() {
-        Ok(_) => panic!("simulation step must fail"),
-        Err(error) => error,
+    let Err(error) = simulation.step() else {
+        panic!("simulation step must fail");
     };
     assert!(matches!(
         error,
@@ -205,9 +191,8 @@ fn virtual_time_limit_fails_terminally() {
 
 #[test]
 fn initial_time_cannot_begin_beyond_the_ceiling() {
-    let limits = SimulationLimits::default()
-        .with_max_virtual_time(Moment::from_nanos(5));
-    let error = match Simulation::with_parts(
+    let limits = SimulationLimits::default().with_max_virtual_time(Moment::from_nanos(5));
+    let Err(error) = Simulation::with_parts(
         TimelineId::new(45),
         Moment::from_nanos(6),
         AlwaysRunnable,
@@ -215,9 +200,8 @@ fn initial_time_cannot_begin_beyond_the_ceiling() {
         limits,
         Fifo::new(),
         NoopMonitor::new(),
-    ) {
-        Ok(_) => panic!("simulation construction must fail"),
-        Err(error) => error,
+    ) else {
+        panic!("simulation construction must fail");
     };
     assert!(matches!(
         error,
@@ -227,20 +211,12 @@ fn initial_time_cannot_begin_beyond_the_ceiling() {
 
 #[test]
 fn ready_capacity_overflow_is_rejected_before_allocation() {
-    let event_capacity = NonZeroUsize::new(usize::MAX)
-        .unwrap_or_else(|| panic!("maximum usize must be nonzero"));
-    let limits = SimulationLimits::new(TimelineLimits::new(
-        event_capacity,
-        RetainedBytes::ZERO,
-    ));
-    let error = match Simulation::new(
-        TimelineId::new(46),
-        AlwaysRunnable,
-        one_duty(),
-        limits,
-    ) {
-        Ok(_) => panic!("combined ready capacity must overflow"),
-        Err(error) => error,
+    let event_capacity =
+        NonZeroUsize::new(usize::MAX).unwrap_or_else(|| panic!("maximum usize must be nonzero"));
+    let limits = SimulationLimits::new(TimelineLimits::new(event_capacity, RetainedBytes::ZERO));
+    let Err(error) = Simulation::new(TimelineId::new(46), AlwaysRunnable, one_duty(), limits)
+    else {
+        panic!("combined ready capacity must overflow");
     };
     assert!(matches!(
         error,
