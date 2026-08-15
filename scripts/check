@@ -7,6 +7,7 @@ cargo check -p calandria --no-default-features --features alloc --lib --locked
 cargo check -p calandria-sim --lib --locked
 cargo check -p calandria-mio --lib --locked
 cargo test --workspace --all-targets --all-features --locked
+cargo run -p calandria --example checksum_service --all-features --locked
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
 python3 scripts/check-source-shape
