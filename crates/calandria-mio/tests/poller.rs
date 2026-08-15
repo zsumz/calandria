@@ -8,11 +8,16 @@ use std::{
 };
 
 use calandria::{
-    Interest, PollEvent, PollEvents, ResourceGeneration, ResourceOwnerId, ResourceSlotId,
+    Interest, PollEvent, PollEvents, Poller, ResourceGeneration, ResourceOwnerId, ResourceSlotId,
     ResourceToken, Span,
 };
 use calandria_mio::{MioError, MioPoller, MioPollerLimits};
 use mio::{Interest as MioInterest, Registry, Token, event::Source, net::TcpListener};
+
+#[path = "poller_support/mod.rs"]
+mod support;
+
+use support::supported_compound_interest;
 
 #[test]
 fn explicit_wake_releases_the_selector() -> Result<(), Box<dyn Error>> {
@@ -70,6 +75,11 @@ fn unsupported_interest_is_rejected_before_identity_consumption() -> Result<(), 
     ));
     assert_eq!(poller.snapshot().registrations(), 0);
     assert_eq!(poller.snapshot().backend_tokens_issued(), 0);
+    #[cfg(not(target_os = "freebsd"))]
+    assert!(matches!(
+        poller.register(&mut listener, resource(0), Interest::LIO),
+        Err(MioError::UnsupportedInterest { interest }) if interest == Interest::LIO
+    ));
     Ok(())
 }
 
@@ -79,7 +89,7 @@ fn failed_backend_registration_consumes_its_backend_identity() -> Result<(), Box
     let mut poller = MioPoller::new(limits)?;
     let mut source = RejectingSource;
 
-    let error = match poller.register(&mut source, resource(0), Interest::READABLE) {
+    let error = match poller.register(&mut source, resource(0), supported_compound_interest()) {
         Ok(()) => panic!("backend registration must fail"),
         Err(error) => error,
     };
@@ -118,7 +128,7 @@ fn zero_wait_returns_an_empty_bounded_batch() -> Result<(), Box<dyn Error>> {
     let mut poller = MioPoller::new(limits)?;
     let mut events = poller.event_batch();
 
-    let report = poller.poll(Span::ZERO, &mut events)?;
+    let report = Poller::poll(&mut poller, Span::ZERO, &mut events)?;
 
     assert_eq!(report.delivered(), 0);
     assert!(events.is_empty());
@@ -154,6 +164,7 @@ fn configured_limits_are_stable_and_observable() -> Result<(), Box<dyn Error>> {
 
     assert_eq!(poller.limits(), limits);
     assert_eq!(poller.snapshot().limits(), limits);
+    assert!(!poller.snapshot().token_space_exhausted());
     assert_eq!(poller.event_batch().capacity(), limits.events());
     Ok(())
 }
