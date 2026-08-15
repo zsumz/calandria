@@ -1,7 +1,10 @@
 //! Loom models for reactor termination, group admission, and startup decisions.
 
 use loom::{
-    sync::{Arc, Condvar, Mutex},
+    sync::{
+        Arc, Condvar, Mutex,
+        atomic::{AtomicBool, Ordering},
+    },
     thread,
 };
 
@@ -77,49 +80,63 @@ fn termination_publication_linearizes_before_a_failed_wake() {
 
 #[derive(Debug)]
 struct Admission {
-    open: bool,
-    accepted: usize,
+    open: AtomicBool,
+    shards: [Mutex<bool>; 2],
 }
 
 #[test]
-fn group_close_and_ingress_admission_share_one_linearization_lock() {
-    loom::model(|| {
-        let admission = Arc::new(Mutex::new(Admission {
-            open: true,
-            accepted: 0,
-        }));
-        let sender_state = Arc::clone(&admission);
-        let sender = thread::spawn(move || {
-            let mut state = sender_state
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
-            if !state.open {
-                return false;
-            }
-            thread::yield_now();
-            state.accepted += 1;
-            true
-        });
-        let closer_state = Arc::clone(&admission);
-        let closer = thread::spawn(move || {
-            closer_state
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .open = false;
-        });
+fn group_close_fences_each_independent_shard_admission() {
+    for target in 0..2 {
+        loom::model(move || {
+            let admission = Arc::new(Admission {
+                open: AtomicBool::new(true),
+                shards: [Mutex::new(false), Mutex::new(false)],
+            });
+            let sender_state = Arc::clone(&admission);
+            let sender = thread::spawn(move || admit(&sender_state, target));
+            let closer_state = Arc::clone(&admission);
+            let closer = thread::spawn(move || {
+                closer_state.open.store(false, Ordering::Release);
+                for shard in &closer_state.shards {
+                    drop(
+                        shard
+                            .lock()
+                            .unwrap_or_else(std::sync::PoisonError::into_inner),
+                    );
+                }
+            });
 
-        let accepted = sender
-            .join()
-            .unwrap_or_else(|_| panic!("modeled sender panicked"));
-        closer
-            .join()
-            .unwrap_or_else(|_| panic!("modeled closer panicked"));
-        let state = admission
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        assert!(!state.open);
-        assert_eq!(state.accepted, usize::from(accepted));
-    });
+            let accepted = sender
+                .join()
+                .unwrap_or_else(|_| panic!("modeled sender panicked"));
+            closer
+                .join()
+                .unwrap_or_else(|_| panic!("modeled closer panicked"));
+            assert!(!admission.open.load(Ordering::Acquire));
+            assert_eq!(published(&admission, target), accepted);
+            assert!(!published(&admission, 1 - target));
+        });
+    }
+}
+
+fn admit(admission: &Admission, shard: usize) -> bool {
+    if !admission.open.load(Ordering::Acquire) {
+        return false;
+    }
+    let mut published = admission.shards[shard]
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if !admission.open.load(Ordering::Acquire) {
+        return false;
+    }
+    *published = true;
+    true
+}
+
+fn published(admission: &Admission, shard: usize) -> bool {
+    *admission.shards[shard]
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

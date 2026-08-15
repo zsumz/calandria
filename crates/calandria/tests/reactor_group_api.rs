@@ -4,7 +4,7 @@ use std::error::Error;
 
 use calandria::{
     AdmissionFailure, Lane, ReactorGroup, ReactorGroupHandle, ReactorGroupOutcome,
-    ReactorGroupSendFailure, ReactorId, RetainedBytes,
+    ReactorGroupSendFailure, ReactorGroupSpawnFailure, ReactorId, RetainedBytes,
 };
 
 #[path = "reactor_group_api_support/mod.rs"]
@@ -142,7 +142,50 @@ fn assert_closed_materialization(ingress: &ReactorGroupHandle<Command>) {
 fn measured_member_exposes_its_unstarted_reactor() {
     let observed = observations();
     let member = measured_member(ReactorId::new(7), &observed);
+    assert_eq!(member.id(), ReactorId::new(7));
     assert!(format!("{:?}", member.reactor()).contains("Reactor"));
+}
+
+#[test]
+fn member_identity_mismatch_rejects_before_start_and_returns_ownership() {
+    let observed = observations();
+    let members = vec![
+        member(ReactorId::new(0), &observed),
+        member(ReactorId::new(7), &observed),
+        member(ReactorId::new(2), &observed),
+    ];
+    let Err(error) = ReactorGroup::spawn(group_limits(3), "identity-mismatch", members) else {
+        panic!("mismatched member identity must reject startup");
+    };
+    assert!(matches!(
+        error.failure(),
+        ReactorGroupSpawnFailure::Identity { expected, actual }
+            if *expected == ReactorId::new(1) && *actual == ReactorId::new(7)
+    ));
+    assert_eq!(
+        error.to_string(),
+        "reactor group member at position 1 declared identity 7"
+    );
+    assert!(Error::source(&error).is_none());
+    let (failure, members) = error.into_parts();
+    assert!(matches!(failure, ReactorGroupSpawnFailure::Identity { .. }));
+    assert_eq!(
+        members
+            .iter()
+            .map(calandria::ReactorGroupMember::id)
+            .collect::<Vec<_>>(),
+        [ReactorId::new(0), ReactorId::new(7), ReactorId::new(2)]
+    );
+}
+
+#[test]
+fn empty_topology_into_members_returns_the_exact_empty_owner_set() {
+    let members: Vec<support::Member> = Vec::new();
+    let Err(error) = ReactorGroup::spawn(group_limits(1), "empty-api", members) else {
+        panic!("empty group must reject startup");
+    };
+    assert!(matches!(error.failure(), ReactorGroupSpawnFailure::Empty));
+    assert!(error.into_members().is_empty());
 }
 
 #[test]

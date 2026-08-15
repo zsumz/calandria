@@ -77,30 +77,36 @@ pub(crate) fn observed_values(observed: &Observed) -> Vec<(ReactorId, u64)> {
 pub(crate) fn member(id: ReactorId, observed: &Observed) -> Member {
     let (parker, notifier) = thread_parker();
     let observed = Arc::clone(observed);
-    ReactorGroupMember::with_mailbox(mailbox_limits(), notifier.wake_handle(), move |receiver| {
-        Reactor::with_config(
-            ShardDuty {
-                id,
-                receiver,
-                scratch: Vec::with_capacity(8),
-                observed,
-            },
-            MonotonicClock::new(),
-            parker,
-            notifier.wake_handle(),
-            HostConfig::default(),
-        )
-    })
+    ReactorGroupMember::with_mailbox(
+        id,
+        mailbox_limits(),
+        notifier.wake_handle(),
+        move |id, receiver| {
+            Reactor::with_config(
+                ShardDuty {
+                    id,
+                    receiver,
+                    scratch: Vec::with_capacity(8),
+                    observed,
+                },
+                MonotonicClock::new(),
+                parker,
+                notifier.wake_handle(),
+                HostConfig::default(),
+            )
+        },
+    )
 }
 
 pub(crate) fn measured_member(id: ReactorId, observed: &Observed) -> Member {
     let (parker, notifier) = thread_parker();
     let observed = Arc::clone(observed);
     ReactorGroupMember::with_mailbox_measure(
+        id,
         mailbox_limits(),
         Command::retained_bytes,
         notifier.wake_handle(),
-        move |receiver| {
+        move |id, receiver| {
             Reactor::with_config(
                 ShardDuty {
                     id,

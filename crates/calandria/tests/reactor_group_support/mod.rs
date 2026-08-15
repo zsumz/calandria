@@ -148,7 +148,7 @@ fn member_with_wakes(
     termination_wake: WakeHandle,
 ) -> Member {
     let observed = Arc::clone(observed);
-    ReactorGroupMember::with_mailbox(mailbox_limits(), ingress_wake, move |receiver| {
+    ReactorGroupMember::with_mailbox(id, mailbox_limits(), ingress_wake, move |id, receiver| {
         let duty = ShardDuty {
             id,
             receiver,
