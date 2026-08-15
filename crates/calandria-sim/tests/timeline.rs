@@ -1,9 +1,9 @@
 //! Bounded timeline ownership, ordering, and accounting tests.
 
-use core::num::NonZeroUsize;
+use core::{error::Error, num::NonZeroUsize};
 
 use calandria::{Moment, Retained, RetainedBytes, Span};
-use calandria_sim::{ScheduleFailure, Timeline, TimelineId, TimelineLimits};
+use calandria_sim::{Planned, ScheduleFailure, Timeline, TimelineId, TimelineLimits};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Event {
@@ -54,6 +54,8 @@ fn count_rejection_preserves_event_ownership() {
         panic!("event count limit must reject");
     };
 
+    assert_eq!(error.to_string(), "pending event capacity of 1 was reached");
+    assert!(Error::source(&error).is_some());
     assert!(matches!(
         error.failure(),
         ScheduleFailure::EventCapacity { .. }
@@ -180,6 +182,20 @@ fn scheduling_in_the_past_is_rejected_without_mutation() {
     ));
     assert_eq!(timeline.snapshot().pending_events(), 0);
     assert_eq!(timeline.now(), Moment::from_nanos(10));
+}
+
+#[test]
+fn planned_outcomes_schedule_with_their_owned_delay() {
+    let mut timeline = Timeline::new(TimelineId::new(1), limits(1, 8));
+    let token = timeline
+        .schedule_planned(Planned::new(Span::from_nanos(7), event(1, 3)))
+        .unwrap_or_else(|error| panic!("planned event must fit: {error}"));
+
+    assert_eq!(token.at(), Moment::from_nanos(7));
+    assert_eq!(
+        timeline.pop_next().map(calandria_sim::Delivery::into_event),
+        Some(event(1, 3))
+    );
 }
 
 fn limits(events: usize, bytes: u64) -> TimelineLimits {

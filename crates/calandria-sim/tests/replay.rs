@@ -173,6 +173,10 @@ fn replay_reports_committed_turn_divergence_at_the_exact_position() {
     let Err(error) = changed.step() else {
         panic!("changed turn must diverge");
     };
+    assert_eq!(
+        error.to_string(),
+        "scheduler failed: position 0 committed different facts"
+    );
 
     assert!(matches!(
         error,

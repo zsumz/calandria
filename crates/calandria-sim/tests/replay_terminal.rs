@@ -43,6 +43,10 @@ fn replay_rejects_clean_completion_with_trace_remaining() {
     let Err(error) = shorter.step() else {
         panic!("early clean completion must diverge");
     };
+    assert_eq!(
+        error.to_string(),
+        "scheduler failed: completion at 1 left 1 trace entries"
+    );
 
     assert!(matches!(
         error,
@@ -61,6 +65,10 @@ fn replay_rejects_ready_work_after_trace_exhaustion() {
     let Err(error) = longer.step() else {
         panic!("work after the trace must diverge");
     };
+    assert_eq!(
+        error.to_string(),
+        "scheduler failed: trace ended at 1, but 1 actions were ready at 0ns"
+    );
 
     assert!(matches!(
         error,

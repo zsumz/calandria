@@ -5,7 +5,7 @@ use core::convert::Infallible;
 use calandria::{Moment, Retained, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
     ActionContext, Delivery, DutyId, EntropySeed, EntropyStreamId, Fifo, Model, RoundRobin, Seeded,
-    Simulation, SimulationLimits, Step, TimelineId, Topology,
+    SeededError, Simulation, SimulationLimits, Step, TimelineId, Topology,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -84,6 +84,7 @@ fn round_robin_rotates_owners_independently_of_action_order() {
         RoundRobin::new(),
     )
     .unwrap_or_else(|error| panic!("simulation must build: {error}"));
+    assert_eq!(simulation.scheduler().cursor(), None);
 
     for _ in 0..5 {
         let _ = simulation
@@ -100,19 +101,22 @@ fn round_robin_rotates_owners_independently_of_action_order() {
             DutyId::new(2),
         ]
     );
+    assert_eq!(simulation.scheduler().cursor(), Some(DutyId::new(2)));
 }
 
 #[test]
 fn seeded_scheduler_matches_the_version_one_golden_schedule() {
+    let seed = EntropySeed::new(0x0123_4567_89ab_cdef);
+    let stream = EntropyStreamId::new(9);
+    let scheduler = Seeded::new(seed, stream);
+    assert_eq!(scheduler.seed(), seed);
+    assert_eq!(scheduler.stream(), stream);
     let mut simulation = Simulation::with_scheduler(
         TimelineId::new(53),
         Recorder::default(),
         topology([1, 2, 3]),
         SimulationLimits::default(),
-        Seeded::new(
-            EntropySeed::new(0x0123_4567_89ab_cdef),
-            EntropyStreamId::new(9),
-        ),
+        scheduler,
     )
     .unwrap_or_else(|error| panic!("simulation must build: {error}"));
 
@@ -126,6 +130,21 @@ fn seeded_scheduler_matches_the_version_one_golden_schedule() {
         &[1, 2, 3, 2, 1, 3, 2, 1, 2, 2].map(DutyId::new)
     );
     assert_eq!(simulation.scheduler().selections(), 10);
+}
+
+#[test]
+fn seeded_scheduler_failures_have_stable_diagnostics() {
+    assert_eq!(
+        SeededError::ReadySetTooLarge {
+            actions: usize::MAX
+        }
+        .to_string(),
+        format!("ready set of {} actions exceeds u64", usize::MAX)
+    );
+    assert_eq!(
+        SeededError::SelectionsExhausted.to_string(),
+        "seeded scheduler selection identities are exhausted"
+    );
 }
 
 fn topology<const N: usize>(duties: [u32; N]) -> Topology {
