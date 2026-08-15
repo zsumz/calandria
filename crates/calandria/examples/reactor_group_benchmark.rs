@@ -1,4 +1,4 @@
-//! Measures fixed-work throughput across one, two, and four reactor-group shards.
+//! Compares one direct reactor with one-, two-, and four-shard reactor groups.
 
 use std::{
     convert::Infallible,
@@ -10,13 +10,13 @@ use std::{
 
 use calandria::{
     AdmissionFailure, DrainStatus, Duty, HostConfig, LaneLimits, MailboxLimits, MailboxReceiver,
-    Moment, MonotonicClock, Next, Reactor, ReactorGroup, ReactorGroupLimits, ReactorGroupMember,
-    ReactorGroupMemberExit, ReactorGroupSendFailure, ReactorId, Retained, RetainedBytes,
-    ThreadParker, Turn, WorkCount, thread_parker,
+    MailboxSender, Moment, MonotonicClock, Next, Reactor, ReactorGroup, ReactorGroupLimits,
+    ReactorGroupMember, ReactorGroupMemberExit, ReactorGroupSendFailure, ReactorId, ReactorOutcome,
+    Retained, RetainedBytes, ThreadParker, Turn, WorkCount, mailbox, thread_parker,
 };
 
-const OPERATIONS: usize = 200_000;
-const SAMPLES: usize = 5;
+const OPERATIONS: usize = 2_000_000;
+const SAMPLES: usize = 9;
 const TURN_BUDGET: usize = 256;
 const MAILBOX_MESSAGES: usize = 4_096;
 
@@ -75,23 +75,66 @@ impl Duty for Shard {
 type Member = ReactorGroupMember<Shard, MonotonicClock, ThreadParker, Command>;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("shards,median_ms,operations_per_second");
+    let singular = sample(run_singular)?;
+    let singular_rate = rate(singular);
+    println!("mode,shards,median_ms,operations_per_second,relative_to_singular");
+    print_sample("reactor", 1, singular, singular_rate, singular_rate);
     for shards in [1, 2, 4] {
-        let _warmup = run(shards)?;
-        let mut samples = (0..SAMPLES)
-            .map(|_| run(shards))
-            .collect::<Result<Vec<_>, _>>()?;
-        samples.sort_unstable();
-        let median = samples[SAMPLES / 2];
-        let operations = u32::try_from(OPERATIONS)
-            .unwrap_or_else(|_| panic!("benchmark operation count must fit in u32"));
-        let rate = f64::from(operations) / median.as_secs_f64();
-        println!("{shards},{:.3},{rate:.0}", median.as_secs_f64() * 1_000.0);
+        let median = sample(|| run_group(shards))?;
+        print_sample("group", shards, median, rate(median), singular_rate);
     }
     Ok(())
 }
 
-fn run(shards: usize) -> Result<Duration, Box<dyn Error>> {
+fn sample(
+    mut run: impl FnMut() -> Result<Duration, Box<dyn Error>>,
+) -> Result<Duration, Box<dyn Error>> {
+    let _warmup = run()?;
+    let mut samples = (0..SAMPLES).map(|_| run()).collect::<Result<Vec<_>, _>>()?;
+    samples.sort_unstable();
+    Ok(samples[SAMPLES / 2])
+}
+
+fn print_sample(mode: &str, shards: usize, median: Duration, rate: f64, singular_rate: f64) {
+    println!(
+        "{mode},{shards},{:.3},{rate:.0},{:.2}",
+        median.as_secs_f64() * 1_000.0,
+        rate / singular_rate
+    );
+}
+
+fn rate(duration: Duration) -> f64 {
+    let operations = u32::try_from(OPERATIONS)
+        .unwrap_or_else(|_| panic!("benchmark operation count must fit in u32"));
+    f64::from(operations) / duration.as_secs_f64()
+}
+
+fn run_singular() -> Result<Duration, Box<dyn Error>> {
+    let (parker, notifier) = thread_parker();
+    let (ingress, receiver) = mailbox(mailbox_limits(), notifier.wake_handle());
+    let reactor = reactor(receiver, parker, notifier.wake_handle());
+    let handle = reactor.spawn("calandria-benchmark-reactor")?;
+    let started = Instant::now();
+    let producer_ingress = ingress.clone();
+    let producer = thread::spawn(move || {
+        for value in 0..OPERATIONS {
+            send_mailbox(&producer_ingress, Command::Work(fixed(value)));
+        }
+    });
+    producer
+        .join()
+        .unwrap_or_else(|_| panic!("benchmark producer panicked"));
+    send_mailbox(&ingress, Command::Stop);
+    let exit = handle
+        .join()
+        .unwrap_or_else(|_| panic!("benchmark reactor panicked"));
+    let elapsed = started.elapsed();
+    assert!(matches!(exit.outcome(), ReactorOutcome::Stopped));
+    assert_eq!(exit.duty().processed, fixed(OPERATIONS));
+    Ok(elapsed)
+}
+
+fn run_group(shards: usize) -> Result<Duration, Box<dyn Error>> {
     let group = ReactorGroup::spawn(
         ReactorGroupLimits::new(nonzero(shards)),
         "calandria-benchmark",
@@ -108,7 +151,7 @@ fn run(shards: usize) -> Result<Duration, Box<dyn Error>> {
                 let count = operations_for(position, shards);
                 for offset in 0..count {
                     let value = fixed(position * count + offset);
-                    send(
+                    send_group(
                         &ingress,
                         ReactorId::new(fixed(position)),
                         Command::Work(value),
@@ -123,7 +166,7 @@ fn run(shards: usize) -> Result<Duration, Box<dyn Error>> {
             .unwrap_or_else(|_| panic!("benchmark producer panicked"));
     }
     for position in 0..shards {
-        send(&ingress, ReactorId::new(fixed(position)), Command::Stop);
+        send_group(&ingress, ReactorId::new(fixed(position)), Command::Stop);
     }
     let exit = group
         .join()
@@ -140,7 +183,11 @@ fn run(shards: usize) -> Result<Duration, Box<dyn Error>> {
     Ok(elapsed)
 }
 
-fn send(ingress: &calandria::ReactorGroupHandle<Command>, id: ReactorId, mut command: Command) {
+fn send_group(
+    ingress: &calandria::ReactorGroupHandle<Command>,
+    id: ReactorId,
+    mut command: Command,
+) {
     loop {
         match ingress.try_send(id, command) {
             Ok(()) => return,
@@ -157,24 +204,46 @@ fn send(ingress: &calandria::ReactorGroupHandle<Command>, id: ReactorId, mut com
     }
 }
 
+fn send_mailbox(ingress: &MailboxSender<Command>, mut command: Command) {
+    loop {
+        match ingress.try_send(command) {
+            Ok(()) => return,
+            Err(error) => {
+                let (returned, _, failure) = error.into_parts();
+                assert!(matches!(failure, AdmissionFailure::MessageCapacity));
+                command = returned;
+                thread::yield_now();
+            }
+        }
+    }
+}
+
 fn member(id: ReactorId) -> Member {
     let (parker, notifier) = thread_parker();
     let ingress_wake = notifier.wake_handle();
     let termination_wake = notifier.wake_handle();
     ReactorGroupMember::with_mailbox(id, mailbox_limits(), ingress_wake, move |_id, receiver| {
-        Reactor::with_config(
-            Shard {
-                receiver,
-                scratch: Vec::with_capacity(TURN_BUDGET),
-                processed: 0,
-                checksum: 0,
-            },
-            MonotonicClock::new(),
-            parker,
-            termination_wake,
-            HostConfig::default(),
-        )
+        reactor(receiver, parker, termination_wake)
     })
+}
+
+fn reactor(
+    receiver: MailboxReceiver<Command>,
+    parker: ThreadParker,
+    termination_wake: calandria::WakeHandle,
+) -> Reactor<Shard, MonotonicClock, ThreadParker> {
+    Reactor::with_config(
+        Shard {
+            receiver,
+            scratch: Vec::with_capacity(TURN_BUDGET),
+            processed: 0,
+            checksum: 0,
+        },
+        MonotonicClock::new(),
+        parker,
+        termination_wake,
+        HostConfig::default(),
+    )
 }
 
 fn mailbox_limits() -> MailboxLimits {
