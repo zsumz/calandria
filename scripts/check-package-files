@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+for crate_dir in crates/calandria crates/calandria-mio crates/calandria-sim; do
+  cmp LICENSE "${crate_dir}/LICENSE"
+done
+
+for package in calandria calandria-mio calandria-sim; do
+  package_files="$(
+    cargo package \
+      --list \
+      --allow-dirty \
+      --locked \
+      --offline \
+      --package "${package}"
+  )"
+  if ! grep -qx 'LICENSE' <<<"${package_files}"; then
+    printf 'package %s does not include LICENSE\n' "${package}" >&2
+    exit 1
+  fi
+done

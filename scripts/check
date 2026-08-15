@@ -10,5 +10,6 @@ cargo test --workspace --all-targets --all-features --locked
 cargo run -p calandria --example checksum_service --all-features --locked
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps --locked
+scripts/check-package-files
 python3 scripts/check-source-shape
 git diff --check
