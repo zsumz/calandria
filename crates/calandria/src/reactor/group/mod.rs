@@ -1,5 +1,6 @@
 //! Static shared-nothing reactor topology with bounded typed ingress.
 
+mod admission;
 mod exit;
 mod gate;
 mod identity;

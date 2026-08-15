@@ -8,8 +8,8 @@ use std::{
 use crate::{Clock, Duty, ReactorOutcome, Waiter};
 
 use super::{
-    AdmissionCloser, ReactorGroupMemberExit, ReactorGroupOutcome, Supervised, WorkerJoin,
-    WorkerResult, exit::terminal_kind,
+    AdmissionCloser, ReactorGroupMemberExit, ReactorGroupOutcome, ReactorId, Supervised,
+    WorkerJoin, WorkerResult,
 };
 
 type SupervisorSpawn<D, C, W, T> =
@@ -87,8 +87,6 @@ where
     let mut exits = core::iter::repeat_with(|| None)
         .take(count)
         .collect::<Vec<Option<ReactorGroupMemberExit<D, C, W>>>>();
-    let mut fatal = None;
-
     for _ in 0..count {
         let id = assets
             .completed
@@ -107,9 +105,6 @@ where
         let WorkerResult::Finished(exit) = result else {
             panic!("started reactor group member reported startup abort");
         };
-        if fatal.is_none() {
-            fatal = terminal_kind(id, &exit);
-        }
         exits[position] = Some(exit);
     }
 
@@ -119,7 +114,7 @@ where
         .map(|exit| exit.unwrap_or_else(|| panic!("reactor group terminal exit missing")))
         .collect::<Vec<_>>()
         .into_boxed_slice();
-    let outcome = fatal.unwrap_or_else(|| aggregate(&members));
+    let outcome = aggregate(&members);
     Supervised { outcome, members }
 }
 
@@ -129,7 +124,20 @@ where
     C: Clock,
     W: Waiter<D>,
 {
-    if members.iter().any(|member| {
+    if let Some(position) = members
+        .iter()
+        .position(|member| matches!(member, ReactorGroupMemberExit::Panicked(_)))
+    {
+        ReactorGroupOutcome::Panicked(ReactorId::from_position(position))
+    } else if let Some(position) = members.iter().position(|member| {
+        matches!(
+            member,
+            ReactorGroupMemberExit::Exited(exit)
+                if matches!(exit.outcome(), ReactorOutcome::Failed(_))
+        )
+    }) {
+        ReactorGroupOutcome::Failed(ReactorId::from_position(position))
+    } else if members.iter().any(|member| {
         matches!(
             member,
             ReactorGroupMemberExit::Exited(exit)

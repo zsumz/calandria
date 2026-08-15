@@ -27,7 +27,7 @@ where
         name: impl Into<String>,
         members: Vec<ReactorGroupMember<D, C, W, T>>,
     ) -> Result<Self, ReactorGroupSpawnError<D, C, W, T>> {
-        if let Err(failure) = validate(limits, members.len()) {
+        if let Err(failure) = validate(limits, &members) {
             return Err(ReactorGroupSpawnError::new(failure, members));
         }
         let reactors = NonZeroUsize::new(members.len())
@@ -35,7 +35,10 @@ where
         let name = name.into();
         let (reactors_to_start, senders): (Vec<_>, Vec<_>) = members
             .into_iter()
-            .map(ReactorGroupMember::into_parts)
+            .map(|member| {
+                let (_id, reactor, ingress) = member.into_parts();
+                (reactor, ingress)
+            })
             .unzip();
         let controls = reactors_to_start
             .iter()
@@ -145,13 +148,20 @@ where
         let members = reactors
             .into_iter()
             .zip(senders)
-            .map(|(reactor, ingress)| ReactorGroupMember::from_parts(reactor, ingress))
+            .enumerate()
+            .map(|(position, (reactor, ingress))| {
+                ReactorGroupMember::from_parts(ReactorId::from_position(position), reactor, ingress)
+            })
             .collect();
         ReactorGroupSpawnError::new(failure, members)
     }
 }
 
-fn validate(limits: ReactorGroupLimits, actual: usize) -> Result<(), ReactorGroupSpawnFailure> {
+fn validate<D, C, W, T>(
+    limits: ReactorGroupLimits,
+    members: &[ReactorGroupMember<D, C, W, T>],
+) -> Result<(), ReactorGroupSpawnFailure> {
+    let actual = members.len();
     if actual == 0 {
         return Err(ReactorGroupSpawnFailure::Empty);
     }
@@ -160,6 +170,15 @@ fn validate(limits: ReactorGroupLimits, actual: usize) -> Result<(), ReactorGrou
             limit: limits.reactors(),
             actual,
         });
+    }
+    for (position, member) in members.iter().enumerate() {
+        let expected = ReactorId::from_position(position);
+        if member.id() != expected {
+            return Err(ReactorGroupSpawnFailure::Identity {
+                expected,
+                actual: member.id(),
+            });
+        }
     }
     Ok(())
 }

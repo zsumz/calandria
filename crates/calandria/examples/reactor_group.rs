@@ -197,7 +197,7 @@ fn member(id: ReactorId) -> Member {
     let (parker, notifier) = thread_parker();
     let ingress_wake = notifier.wake_handle();
     let termination_wake = notifier.wake_handle();
-    ReactorGroupMember::with_mailbox(mailbox_limits(), ingress_wake, move |receiver| {
+    ReactorGroupMember::with_mailbox(id, mailbox_limits(), ingress_wake, move |id, receiver| {
         reactor(id, receiver, parker, termination_wake)
     })
 }

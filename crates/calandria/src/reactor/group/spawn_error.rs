@@ -16,6 +16,13 @@ pub enum ReactorGroupSpawnFailure {
         /// Supplied member count.
         actual: usize,
     },
+    /// A member declared an identity different from its topology position.
+    Identity {
+        /// Identity required by the member's zero-based topology position.
+        expected: ReactorId,
+        /// Identity declared when constructing the member.
+        actual: ReactorId,
+    },
     /// One reactor owner thread could not be created.
     ReactorThread {
         /// Reactor whose thread creation failed.
@@ -73,6 +80,12 @@ impl fmt::Display for ReactorGroupSpawnFailure {
                 formatter,
                 "reactor group has {actual} members but limit is {limit}"
             ),
+            Self::Identity { expected, actual } => write!(
+                formatter,
+                "reactor group member at position {} declared identity {}",
+                expected.get(),
+                actual.get()
+            ),
             Self::ReactorThread { reactor, source } => write!(
                 formatter,
                 "reactor {} thread creation failed: {source}",
@@ -109,7 +122,9 @@ impl<D, C, W, T> std::error::Error for ReactorGroupSpawnError<D, C, W, T> {
         match &self.failure {
             ReactorGroupSpawnFailure::ReactorThread { source, .. }
             | ReactorGroupSpawnFailure::SupervisorThread { source } => Some(source),
-            ReactorGroupSpawnFailure::Empty | ReactorGroupSpawnFailure::Capacity { .. } => None,
+            ReactorGroupSpawnFailure::Empty
+            | ReactorGroupSpawnFailure::Capacity { .. }
+            | ReactorGroupSpawnFailure::Identity { .. } => None,
         }
     }
 }

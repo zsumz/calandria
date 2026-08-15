@@ -2,7 +2,7 @@
 
 use std::any::Any;
 
-use crate::{Clock, Duty, ReactorExit, ReactorOutcome, Waiter};
+use crate::{Clock, Duty, ReactorExit, Waiter};
 
 use super::ReactorId;
 
@@ -20,6 +20,10 @@ where
 }
 
 /// Aggregate terminal reason for one static reactor group.
+///
+/// Panics take precedence over typed failures, which take precedence over
+/// explicit termination and graceful stop. The lowest reactor identity wins
+/// within one fatal class, independent of thread completion order.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ReactorGroupOutcome {
     /// Every reactor duty stopped without framework termination or failure.
@@ -150,23 +154,5 @@ where
             .field("outcome", &self.outcome)
             .field("members", &self.members)
             .finish()
-    }
-}
-
-pub(super) fn terminal_kind<D, C, W>(
-    id: ReactorId,
-    exit: &ReactorGroupMemberExit<D, C, W>,
-) -> Option<ReactorGroupOutcome>
-where
-    D: Duty,
-    C: Clock,
-    W: Waiter<D>,
-{
-    match exit {
-        ReactorGroupMemberExit::Exited(exit) => match exit.outcome() {
-            ReactorOutcome::Failed(_) => Some(ReactorGroupOutcome::Failed(id)),
-            ReactorOutcome::Stopped | ReactorOutcome::Terminated => None,
-        },
-        ReactorGroupMemberExit::Panicked(_) => Some(ReactorGroupOutcome::Panicked(id)),
     }
 }
