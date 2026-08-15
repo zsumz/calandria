@@ -16,10 +16,21 @@ use calandria::{Completion, CompletionError, completion};
 #[test]
 fn blocking_wait_receives_the_producer_value() {
     let (completion, completer) = completion();
+    assert!(format!("{completion:?}").contains("Completion"));
+    assert!(format!("{completer:?}").contains("settled: false"));
     let producer = thread::spawn(move || completer.complete(42));
 
     assert_eq!(completion.wait(), Ok(42));
     assert!(matches!(producer.join(), Ok(Ok(()))));
+}
+
+#[test]
+fn dropping_a_ready_observer_discards_the_unconsumed_value() {
+    let (completion, completer) = completion();
+    let drops = Arc::new(AtomicUsize::new(0));
+    assert!(completer.complete(DropProbe(Arc::clone(&drops))).is_ok());
+    drop(completion);
+    assert_eq!(drops.load(Ordering::SeqCst), 1);
 }
 
 #[test]

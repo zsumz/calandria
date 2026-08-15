@@ -1,6 +1,6 @@
 //! Thread parker notification and wait-boundary tests.
 
-use std::{error::Error, sync::mpsc, thread};
+use std::{convert::Infallible, error::Error, sync::mpsc, thread};
 
 use calandria::{Span, WaitOutcome, Waiter, thread_parker};
 
@@ -28,6 +28,26 @@ fn zero_wait_returns_without_blocking() {
     };
 
     assert_eq!(outcome, WaitOutcome::Idle);
+}
+
+#[test]
+fn closures_are_bounded_waiters_and_parker_debug_reports_state() {
+    let mut called = false;
+    let mut waiter = |_duty: &mut (), maximum: Span| -> Result<WaitOutcome, Infallible> {
+        called = true;
+        assert_eq!(maximum, Span::from_nanos(3));
+        Ok(WaitOutcome::Idle)
+    };
+    assert_eq!(
+        waiter.wait(&mut (), Span::from_nanos(3)),
+        Ok(WaitOutcome::Idle)
+    );
+    assert!(called);
+
+    let (parker, notifier) = thread_parker();
+    assert!(format!("{parker:?}").contains("notified: false"));
+    notifier.notify();
+    assert!(format!("{notifier:?}").contains("notified: true"));
 }
 
 #[test]

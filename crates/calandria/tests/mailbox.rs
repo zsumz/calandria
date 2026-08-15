@@ -162,7 +162,9 @@ fn receiver_close_returns_every_owned_value_and_rejects_later_work() {
         Err(error) => error,
     };
     assert!(matches!(error.failure(), AdmissionFailure::Closed));
-    assert_eq!(sender.snapshot().closed_rejections(), 1);
+    let snapshot = sender.snapshot();
+    assert_eq!(snapshot.closed_rejections(), 1);
+    assert!(!snapshot.receiver_alive());
 }
 
 #[test]
@@ -207,6 +209,53 @@ fn materialization_occurs_only_after_admission_is_proven() {
         Err(ref error) if matches!(error.failure(), AdmissionFailure::MessageCapacity)
     ));
     assert_eq!(materialized.load(Ordering::Relaxed), 0);
+}
+
+#[test]
+fn retained_byte_overflow_rejects_without_materializing_or_wrapping() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let wake = WakeHandle::new(RecordingWake { calls, fail: false });
+    let limits = MailboxLimits::new(
+        LaneLimits::new(nonzero_usize(1), RetainedBytes::ZERO),
+        LaneLimits::new(nonzero_usize(2), RetainedBytes::new(u64::MAX)),
+    );
+    let (sender, receiver) = mailbox(limits, wake);
+    assert!(sender.try_send(message(1, u64::MAX)).is_ok());
+
+    let Err(error) = sender.try_send(message(2, 1)) else {
+        panic!("retained-byte accounting must not wrap");
+    };
+    assert!(matches!(error.failure(), AdmissionFailure::ByteCapacity));
+    assert_eq!(error.into_item(), message(2, 1));
+    let lane = receiver.snapshot().lane(Lane::Work);
+    assert_eq!(lane.queued_messages(), 1);
+    assert_eq!(lane.retained_bytes(), RetainedBytes::new(u64::MAX));
+    assert_eq!(lane.byte_rejections(), 1);
+}
+
+#[test]
+fn cloned_senders_keep_the_mailbox_open_until_the_last_owner_drops() {
+    let (sender, mut receiver, calls) = fixture(false);
+    let clone = sender.clone();
+    assert!(format!("{sender:?}").contains("MailboxSender"));
+    let snapshot = sender.snapshot();
+    assert_eq!(snapshot.limits().work().messages(), nonzero_usize(2));
+    assert_eq!(snapshot.limits().control().messages(), nonzero_usize(2));
+    assert_eq!(snapshot.live_senders(), 2);
+    assert!(snapshot.receiver_alive());
+    assert_eq!(snapshot.closed_rejections(), 0);
+    assert_eq!(snapshot.wake_failures(), 0);
+    assert!(!snapshot.wake_requested());
+
+    drop(sender);
+    assert_eq!(calls.load(Ordering::Relaxed), 0);
+    let report = receiver.drain_into(&mut Vec::new(), nonzero_usize(1));
+    assert_eq!(report.status(), DrainStatus::Idle);
+
+    drop(clone);
+    assert_eq!(calls.load(Ordering::Relaxed), 1);
+    let report = receiver.drain_into(&mut Vec::new(), nonzero_usize(1));
+    assert_eq!(report.status(), DrainStatus::Closed);
 }
 
 fn fixture(

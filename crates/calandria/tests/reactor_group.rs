@@ -57,6 +57,9 @@ fn one_duty_type_runs_as_an_ordered_shared_nothing_group() -> Result<(), Box<dyn
     assert_eq!(exit.outcome(), ReactorGroupOutcome::Stopped);
     assert!(!ingress.is_open());
     assert_eq!(exit.len(), 2);
+    assert!(!exit.is_empty());
+    assert!(exit.member(ReactorId::new(u64::MAX)).is_none());
+    assert!(format!("{exit:?}").contains("ReactorGroupExit"));
     for (id, member) in exit.members() {
         let ReactorGroupMemberExit::Exited(member) = member else {
             panic!("member {id:?} panicked");
@@ -74,6 +77,12 @@ fn one_duty_type_runs_as_an_ordered_shared_nothing_group() -> Result<(), Box<dyn
         panic!("terminal group must close ingress");
     };
     assert!(matches!(closed.failure(), ReactorGroupSendFailure::Closed));
+    for (index, member) in exit.into_members().into_vec().into_iter().enumerate() {
+        let terminal = member
+            .into_result()
+            .unwrap_or_else(|_| panic!("stopped member must retain its reactor exit"));
+        assert_eq!(terminal.into_duty().id(), ReactorId::new(index as u64));
+    }
     Ok(())
 }
 
@@ -137,10 +146,30 @@ fn panicking_member_closes_ingress_and_terminates_peers() -> Result<(), Box<dyn 
         exit.member(ReactorId::new(0)),
         Some(ReactorGroupMemberExit::Panicked(_))
     ));
+    assert!(format!("{:?}", exit.member(ReactorId::new(0))).contains("Panicked"));
     let Some(ReactorGroupMemberExit::Exited(peer)) = exit.member(ReactorId::new(1)) else {
         panic!("peer member must return an owned exit");
     };
     assert!(matches!(peer.outcome(), ReactorOutcome::Terminated));
+
+    let mut members = exit.into_members().into_vec().into_iter();
+    let panicked = members
+        .next()
+        .unwrap_or_else(|| panic!("panicking member must be retained"));
+    let Err(payload) = panicked.into_result() else {
+        panic!("panicking member must preserve its panic payload");
+    };
+    assert_eq!(
+        payload.downcast_ref::<&str>(),
+        Some(&"planned reactor panic")
+    );
+    assert!(
+        members
+            .next()
+            .unwrap_or_else(|| panic!("peer member must be retained"))
+            .into_result()
+            .is_ok()
+    );
     Ok(())
 }
 
@@ -191,6 +220,10 @@ fn explicit_group_termination_is_bounded_and_identity_ordered() -> Result<(), Bo
 
     let termination = group.request_termination();
     assert_eq!(termination.len(), 2);
+    assert!(!termination.is_empty());
+    assert!(termination.get(ReactorId::new(0)).is_some());
+    assert!(termination.get(ReactorId::new(u64::MAX)).is_none());
+    assert!(format!("{termination:?}").contains("ReactorGroupTermination"));
     for (id, result) in termination.iter() {
         assert!(id.get() < 2);
         assert_eq!(result.status(), ReactorTerminationStatus::Requested);
@@ -210,7 +243,12 @@ fn topology_rejection_and_thread_failure_return_every_unstarted_member() {
         panic!("empty topology must reject startup");
     };
     assert!(matches!(error.failure(), ReactorGroupSpawnFailure::Empty));
-    assert!(error.into_members().is_empty());
+    assert_eq!(error.to_string(), "reactor group topology is empty");
+    assert!(format!("{error:?}").contains("member_count: 0"));
+    assert!(Error::source(&error).is_none());
+    let (failure, members) = error.into_parts();
+    assert!(matches!(failure, ReactorGroupSpawnFailure::Empty));
+    assert!(members.is_empty());
     let members = vec![
         member(ReactorId::new(0), &observed, FirstTurn::Run),
         member(ReactorId::new(1), &observed, FirstTurn::Run),
@@ -222,7 +260,16 @@ fn topology_rejection_and_thread_failure_return_every_unstarted_member() {
         error.failure(),
         ReactorGroupSpawnFailure::Capacity { actual: 2, .. }
     ));
-    let members = error.into_members();
+    assert_eq!(
+        error.to_string(),
+        "reactor group has 2 members but limit is 1"
+    );
+    assert!(Error::source(&error).is_none());
+    let (failure, members) = error.into_parts();
+    assert!(matches!(
+        failure,
+        ReactorGroupSpawnFailure::Capacity { actual: 2, .. }
+    ));
     assert_eq!(members.len(), 2);
 
     let Err(error) = ReactorGroup::spawn(group_limits(2), "invalid\0group", members) else {
@@ -233,5 +280,25 @@ fn topology_rejection_and_thread_failure_return_every_unstarted_member() {
         ReactorGroupSpawnFailure::ReactorThread { reactor, .. }
             if *reactor == ReactorId::new(0)
     ));
-    assert_eq!(error.into_members().len(), 2);
+    assert!(
+        error
+            .to_string()
+            .contains("reactor 0 thread creation failed")
+    );
+    assert!(Error::source(&error).is_some());
+    let (failure, members) = error.into_parts();
+    assert!(matches!(
+        failure,
+        ReactorGroupSpawnFailure::ReactorThread { reactor, .. }
+            if reactor == ReactorId::new(0)
+    ));
+    assert_eq!(members.len(), 2);
+
+    let supervisor = ReactorGroupSpawnFailure::SupervisorThread {
+        source: std::io::Error::other("planned supervisor failure"),
+    };
+    assert_eq!(
+        supervisor.to_string(),
+        "reactor group supervisor creation failed: planned supervisor failure"
+    );
 }

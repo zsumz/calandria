@@ -215,6 +215,7 @@ fn waiting_failure_returns_the_owned_terminal_duty() -> Result<(), Box<dyn Error
     ));
     assert_eq!(exit.host_snapshot().phase(), HostPhase::Failed);
     assert_eq!(exit.reactor_snapshot().waits(), 0);
+    assert!(matches!(exit.waiter(), FailingWaiter));
     Ok(())
 }
 
@@ -248,6 +249,8 @@ fn termination_wakes_a_parked_reactor_and_returns_its_owner() -> Result<(), Box<
     );
     let handle = reactor.spawn("calandria-terminated-reactor")?;
     observed.recv_timeout(Duration::from_secs(2))?;
+    assert_eq!(handle.thread().name(), Some("calandria-terminated-reactor"));
+    assert!(!handle.is_finished());
 
     let termination = handle.request_termination();
     assert_eq!(termination.status(), ReactorTerminationStatus::Requested);
@@ -280,6 +283,10 @@ fn failed_termination_wake_keeps_a_bounded_progress_path() -> Result<(), Box<dyn
     let termination = handle.request_termination();
     assert_eq!(termination.status(), ReactorTerminationStatus::Requested);
     assert!(termination.wake_error().is_some());
+    assert_eq!(
+        termination.into_wake_error().map(|error| error.to_string()),
+        Some(String::from("planned termination wake failure"))
+    );
     let exit = handle
         .join()
         .unwrap_or_else(|_| panic!("bounded termination reactor panicked"));

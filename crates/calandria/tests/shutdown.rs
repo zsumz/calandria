@@ -16,6 +16,8 @@ use calandria::{CompletionError, ShutdownSubscribeError, shutdown_barrier};
 #[test]
 fn one_request_admits_every_bounded_subscriber() {
     let (requester, mut completer) = shutdown_barrier(nonzero(2));
+    assert!(format!("{requester:?}").contains("ShutdownRequester"));
+    assert!(format!("{completer:?}").contains("settled: false"));
     let requests = Cell::new(0);
     let first = requester
         .subscribe(|| {

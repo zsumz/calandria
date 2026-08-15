@@ -57,8 +57,10 @@ fn requests_coalesce_until_acknowledged() {
         calls: Arc::clone(&calls),
         fail_first: false,
     });
+    assert!(format!("{wake:?}").contains("requested: false"));
 
     assert!(wake.wake().is_ok());
+    assert!(format!("{wake:?}").contains("requested: true"));
     assert!(wake.wake().is_ok());
     assert_eq!(calls.load(Ordering::Relaxed), 1);
 

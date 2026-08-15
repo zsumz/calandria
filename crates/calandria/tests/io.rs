@@ -27,6 +27,9 @@ fn interest_is_nonempty_extensible_and_explicit() {
         Some(Interest::READ_WRITE | Interest::AIO)
     );
     assert_eq!(Interest::READABLE.remove(Interest::READABLE), None);
+    let mut assigned = Interest::READABLE;
+    assigned |= Interest::WRITABLE;
+    assert_eq!(assigned, Interest::READ_WRITE);
     assert_eq!(
         format!("{combined:?}"),
         "READABLE | WRITABLE | PRIORITY | AIO"
@@ -63,6 +66,9 @@ fn readiness_retains_independent_backend_hints() {
         "READABLE | WRITE_CLOSED | ERROR | PRIORITY | AIO | LIO",
     );
     assert_eq!(format!("{:?}", Readiness::EMPTY), "EMPTY");
+    let mut assigned = Readiness::READABLE;
+    assigned |= Readiness::WRITABLE;
+    assert_eq!(assigned, Readiness::READABLE | Readiness::WRITABLE);
 }
 
 #[test]

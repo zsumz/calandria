@@ -79,9 +79,18 @@ fn cloned_monotonic_clocks_share_one_transferable_time_domain() {
     let clock = MonotonicClock::new();
     let clone = clock.clone();
     let independent = MonotonicClock::new();
+    let defaulted = MonotonicClock::default();
 
     assert!(clock.shares_origin(&clone));
     assert!(!clock.shares_origin(&independent));
+    assert!(!clock.shares_origin(&defaulted));
+}
+
+#[test]
+fn mutable_clock_references_preserve_the_original_time_domain() {
+    let mut clock = ScriptClock::new([Moment::from_nanos(4)]);
+    let mut borrowed = &mut clock;
+    assert_eq!(Clock::now(&mut borrowed), Ok(Moment::from_nanos(4)));
 }
 
 #[test]
@@ -149,9 +158,30 @@ fn embedded_host_uses_post_turn_time_for_parking() {
     assert_eq!(step.action(), HostAction::Wait(Span::from_nanos(5)));
     assert_eq!(host.snapshot().turns(), 1);
     assert_eq!(host.snapshot().work(), WorkCount::new(2));
+    assert_eq!(host.snapshot().last_moment(), Some(Moment::from_nanos(10)));
+    assert_eq!(host.snapshot().last_turn(), Some(step.turn()));
+    assert_eq!(host.snapshot().last_action(), Some(step.action()));
     assert_eq!(host.duty().observed.as_slice(), &[Moment::from_nanos(5)]);
     assert_eq!(host.config(), HostConfig::new(Span::from_nanos(100)));
     assert_eq!(host.clock().moments.len(), 0);
+}
+
+#[test]
+fn embedded_host_returns_each_owned_component_without_running() {
+    let duty = RecordingDuty::successful(Turn::waiting());
+    let clock = ScriptClock::new([Moment::ORIGIN]);
+    let config = HostConfig::new(Span::from_nanos(7));
+    let mut host = EmbeddedHost::new(duty, clock, config);
+    host.clock_mut().moments.push_back(Moment::from_nanos(1));
+
+    let (duty, clock, returned_config, snapshot) = host.into_parts();
+    assert!(duty.observed.is_empty());
+    assert_eq!(clock.moments.len(), 2);
+    assert_eq!(returned_config, config);
+    assert_eq!(snapshot.phase(), HostPhase::Running);
+
+    let duty = EmbeddedHost::new(duty, clock, config).into_duty();
+    assert!(duty.observed.is_empty());
 }
 
 #[test]

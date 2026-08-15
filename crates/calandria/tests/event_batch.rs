@@ -32,6 +32,7 @@ fn insertion_pop_and_drain_preserve_owner_order() {
     push(&mut batch, Event::new(2, 5));
     push(&mut batch, Event::new(3, 7));
 
+    assert_eq!(batch.len(), 3);
     assert_eq!(
         batch.iter().map(|event| event.id).collect::<Vec<_>>(),
         [1, 2, 3]
@@ -39,9 +40,14 @@ fn insertion_pop_and_drain_preserve_owner_order() {
     assert_eq!(batch.pop(), Some(Event::new(3, 7)));
     assert_eq!(batch.snapshot().retained_bytes(), RetainedBytes::new(8));
 
-    let drained = batch.drain().collect::<Vec<_>>();
+    let mut drain = batch.drain();
+    assert!(format!("{drain:?}").contains("remaining: 2"));
+    assert_eq!(drain.len(), 2);
+    assert_eq!(drain.next_back(), Some(Event::new(2, 5)));
+    assert_eq!(drain.next(), Some(Event::new(1, 3)));
+    assert_eq!(drain.next(), None);
+    drop(drain);
 
-    assert_eq!(drained, [Event::new(1, 3), Event::new(2, 5)]);
     assert!(batch.is_empty());
     assert_eq!(batch.snapshot().retained_bytes(), RetainedBytes::ZERO);
 }
@@ -119,13 +125,15 @@ fn zero_byte_limit_accepts_only_fixed_size_events() {
 
 #[test]
 fn clear_restores_empty_accounting_and_reuses_storage_contract() {
-    let mut batch = batch(2, 8);
+    let limits = EventBatchLimits::new(nonzero_usize(2), RetainedBytes::new(8));
+    let mut batch = EventBatch::new(limits);
     push(&mut batch, Event::new(1, 8));
 
     batch.clear();
     push(&mut batch, Event::new(2, 8));
 
     let snapshot = batch.snapshot();
+    assert_eq!(snapshot.limits(), limits);
     assert_eq!(snapshot.events(), 1);
     assert_eq!(snapshot.retained_bytes(), RetainedBytes::new(8));
     assert_eq!(batch.first(), Some(&Event::new(2, 8)));
