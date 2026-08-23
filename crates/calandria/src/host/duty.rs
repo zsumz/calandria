@@ -14,6 +14,15 @@ use crate::{Moment, Turn};
 /// Each call must return after bounded work, must not hide an unbounded wait,
 /// and must report the owner's complete current [`Turn`] interest. Returning
 /// [`crate::Next::Stop`] permanently ends this duty's hosted lifecycle.
+///
+/// The supplied [`Moment`] is authoritative for one invocation. Every deadline
+/// comparison, timeout decision, behavior-changing state transition or
+/// timestamp, and returned [`crate::Next`] must derive from that observation.
+/// A duty must not sample a wall or monotonic clock during `turn`: time may
+/// advance between invocations, but not within one logical turn.
+///
+/// After `turn` returns, the host may observe its clock again to account for
+/// execution time and calculate the actual wait duration.
 pub trait Duty {
     /// Failure returned by one bounded turn.
     type Error;
