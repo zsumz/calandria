@@ -7,11 +7,15 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+documentation = "https://docs.rs/calandria-sim"
 description = "Deterministic simulation for Calandria duties and reactors"
 readme = "README.md"
 keywords = ["simulation", "deterministic", "reactor", "testing"]
 categories = ["development-tools::testing", "concurrency", "no-std"]
 publish = ["crates-io"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [dependencies]
 calandria = { workspace = true, features = ["alloc"] }

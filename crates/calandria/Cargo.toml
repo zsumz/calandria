@@ -7,11 +7,15 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+documentation = "https://docs.rs/calandria"
 description = "Bounded reactor framework for explicit single-owner systems"
 readme = "README.md"
 keywords = ["reactor", "event-loop", "runtime-neutral", "concurrency"]
 categories = ["concurrency", "network-programming", "no-std"]
 publish = ["crates-io"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [features]
 default = ["std"]
