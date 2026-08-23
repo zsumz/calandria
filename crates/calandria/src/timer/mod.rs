@@ -6,6 +6,7 @@ mod limits;
 mod owner;
 mod scheduled;
 mod snapshot;
+mod traversal;
 mod value;
 
 pub use error::{TimerScheduleError, TimerScheduleFailure};

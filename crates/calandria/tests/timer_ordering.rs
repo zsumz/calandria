@@ -73,6 +73,26 @@ fn bounded_drain_retains_due_and_future_timers() {
 }
 
 #[test]
+fn iteration_borrows_every_pending_timer() {
+    let mut timers = queue(4, 64);
+    let first = schedule(&mut timers, 30, Item::new("late", 2));
+    let second = schedule(&mut timers, 10, Item::new("early", 3));
+    let third = schedule(&mut timers, 20, Item::new("middle", 5));
+
+    let mut observed = timers
+        .iter()
+        .map(|timer| (timer.token(), timer.value().name))
+        .collect::<Vec<_>>();
+    observed.sort_by_key(|(token, _)| token.id());
+
+    assert_eq!(
+        observed,
+        vec![(first, "late"), (second, "early"), (third, "middle")]
+    );
+    assert_eq!(timers.len(), 3);
+}
+
+#[test]
 fn cancellation_returns_exact_ownership_and_restores_accounting() {
     let mut timers = queue(2, 64);
     let canceled = schedule(&mut timers, 10, Item::new("cancel", 7));

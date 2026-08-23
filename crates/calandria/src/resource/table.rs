@@ -64,6 +64,28 @@ impl<K, R> ResourceTable<K, R> {
         self.active
     }
 
+    /// Iterates over live tokens, identities, and resources without allocating.
+    ///
+    /// Traversal visits at most the configured capacity. Its order is
+    /// unspecified; callers must not rely on internal slot order.
+    pub fn iter(&self) -> impl Iterator<Item = (ResourceToken, &K, &R)> + '_ {
+        self.slots
+            .iter()
+            .enumerate()
+            .filter_map(|(index, slot)| match slot {
+                Slot::Occupied {
+                    generation,
+                    identity,
+                    resource,
+                } => Some((
+                    ResourceToken::new(self.owner, slot_id(index), *generation),
+                    identity,
+                    resource,
+                )),
+                Slot::Vacant { .. } | Slot::Exhausted => None,
+            })
+    }
+
     /// Returns whether a live resource owns `identity`.
     pub fn contains_identity(&self, identity: &K) -> bool
     where

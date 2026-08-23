@@ -17,7 +17,7 @@ pub struct TimerQueue<T> {
     owner: TimerOwnerId,
     limits: TimerLimits,
     measure: fn(&T) -> RetainedBytes,
-    timers: BinaryHeap<Scheduled<T>>,
+    pub(super) timers: BinaryHeap<Scheduled<T>>,
     next_id: Option<TimerId>,
     retained: RetainedBytes,
 }

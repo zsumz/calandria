@@ -131,6 +131,32 @@ fn mutable_resolution_requires_the_exact_live_token() {
 }
 
 #[test]
+fn iteration_borrows_every_live_resource_with_its_exact_token() {
+    let mut table = ResourceTable::new(ResourceOwnerId::new(12), nonzero(3));
+    let first = table
+        .admit("first", 10_u8)
+        .unwrap_or_else(|error| panic!("first resource must fit: {error}"));
+    let removed = table
+        .admit("removed", 20_u8)
+        .unwrap_or_else(|error| panic!("removed resource must fit: {error}"));
+    let third = table
+        .admit("third", 30_u8)
+        .unwrap_or_else(|error| panic!("third resource must fit: {error}"));
+    let _ = table
+        .remove(removed)
+        .unwrap_or_else(|error| panic!("middle resource must remove: {error}"));
+
+    let mut observed = table
+        .iter()
+        .map(|(token, identity, resource)| (token, *identity, *resource))
+        .collect::<Vec<_>>();
+    observed.sort_by_key(|(token, _, _)| *token);
+
+    assert_eq!(observed, vec![(first, "first", 10), (third, "third", 30)]);
+    assert_eq!(table.len(), 2);
+}
+
+#[test]
 fn admission_selects_the_lowest_vacant_slot_deterministically() {
     let mut table = ResourceTable::new(ResourceOwnerId::new(13), nonzero(2));
     let first = table
