@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Bounded reactor primitives for systems that own their runtime.</strong>
+  <strong>Bounded reactor primitives with explicit ownership and deterministic progress.</strong>
 </p>
 
 <p align="center">
