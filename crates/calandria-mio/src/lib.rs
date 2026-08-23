@@ -9,6 +9,7 @@
 pub mod error;
 pub mod limits;
 pub mod poller;
+pub mod pulse;
 mod registrations;
 pub mod snapshot;
 mod translation;
@@ -16,4 +17,5 @@ mod translation;
 pub use error::MioError;
 pub use limits::MioPollerLimits;
 pub use poller::MioPoller;
+pub use pulse::MioPulseHandle;
 pub use snapshot::MioPollerSnapshot;

@@ -6,7 +6,7 @@ use std::{
 };
 
 use calandria::{Interest, PollEvent, PollEvents, Poller, Span};
-use calandria_mio::{MioError, MioPoller, MioPollerLimits};
+use calandria_mio::{MioError, MioPoller, MioPollerLimits, MioPulseHandle};
 use mio::net::TcpListener;
 
 #[path = "poller_support/mod.rs"]
@@ -29,6 +29,29 @@ fn explicit_wake_releases_the_selector() -> Result<(), Box<dyn Error>> {
 
     assert!(report.observed() >= 1);
     assert_eq!(report.wakes(), 1);
+    assert!(events.iter().any(|event| *event == PollEvent::Wake));
+    Ok(())
+}
+
+#[test]
+fn pulse_after_consumed_wake_releases_the_selector_again() -> Result<(), Box<dyn Error>> {
+    fn assert_send_sync<T: Send + Sync>() {}
+
+    assert_send_sync::<MioPulseHandle>();
+    let limits = MioPollerLimits::new(nonzero(8), nonzero(8));
+    let mut poller = MioPoller::new(limits)?;
+    let pulse = poller.pulse_handle();
+    let second_domain = pulse.clone();
+    let mut events = poller.event_batch();
+
+    second_domain.pulse()?;
+    let first = poller.poll(Span::from_nanos(1_000_000_000), &mut events)?;
+    assert_eq!(first.wakes(), 1);
+    assert!(events.iter().any(|event| *event == PollEvent::Wake));
+
+    pulse.pulse()?;
+    let second = poller.poll(Span::from_nanos(1_000_000_000), &mut events)?;
+    assert_eq!(second.wakes(), 1);
     assert!(events.iter().any(|event| *event == PollEvent::Wake));
     Ok(())
 }

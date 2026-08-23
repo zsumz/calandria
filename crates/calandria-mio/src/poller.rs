@@ -8,7 +8,7 @@ use calandria::{
 use mio::{Events, Poll, Waker, event::Source};
 
 use crate::{
-    MioError, MioPollerLimits, MioPollerSnapshot,
+    MioError, MioPollerLimits, MioPollerSnapshot, MioPulseHandle,
     registrations::{Registrations, WAKE_TOKEN},
     translation::{into_mio_interest, readiness},
 };
@@ -44,6 +44,15 @@ impl MioPoller {
     pub fn wake_handle(&self) -> WakeHandle {
         let waker = Arc::clone(&self.waker);
         WakeHandle::new(move || waker.wake())
+    }
+
+    /// Creates an acknowledgement-free pulse handle for this selector.
+    ///
+    /// Every [`MioPulseHandle::pulse`] call invokes the underlying Mio waker.
+    /// Use a coalesced [`WakeHandle`] instead when one owner can acknowledge a
+    /// publication domain under the lock that governs its durable state.
+    pub fn pulse_handle(&self) -> MioPulseHandle {
+        MioPulseHandle::new(Arc::clone(&self.waker))
     }
 
     /// Registers one exact resource generation.
