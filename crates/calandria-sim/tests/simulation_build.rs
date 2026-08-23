@@ -82,6 +82,14 @@ fn build_rejection_returns_every_consumer_component() {
         error.failure(),
         SimulationBuildFailure::DutyCapacity { actual: 2, .. }
     ));
+    assert_eq!(
+        error.to_string(),
+        "simulation topology has 2 duties but limit is 1"
+    );
+    assert_eq!(
+        format!("{error:?}"),
+        "SimulationBuildError { failure: DutyCapacity { limit: 1, actual: 2 }, .. }"
+    );
     let (failure, model, topology, scheduler, monitor) = error.into_parts();
     assert!(matches!(
         failure,
