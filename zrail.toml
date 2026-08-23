@@ -1,0 +1,140 @@
+schema = 1
+adapters = ["rust"]
+
+[repository]
+roots = ["crates"]
+exclude = []
+workspace_members = "exact"
+nested_git = "deny"
+submodules = "deny"
+symlinks = "inside"
+
+[dependencies]
+mode = "locked"
+unassigned_packages = "deny"
+cycles = "deny"
+
+[source.rust]
+module_docs = "required"
+facades = "declarative"
+entrypoints = "declarative"
+tests = "sibling"
+
+[source.rust.macros]
+mode = "deny-unreviewed"
+
+[[source.rust.macros.allow]]
+name = "Clone"
+reason = "Owned values use Rust's built-in Clone derive where duplication is explicit."
+
+[[source.rust.macros.allow]]
+name = "Copy"
+reason = "Small identities, limits, flags, and snapshots use Rust's built-in Copy derive."
+
+[[source.rust.macros.allow]]
+name = "Debug"
+reason = "Public contracts and owned state use Rust's built-in Debug derive for diagnostics."
+
+[[source.rust.macros.allow]]
+name = "Default"
+reason = "Test fixtures use Rust's built-in Default derive for transparent initial state."
+
+[[source.rust.macros.allow]]
+name = "Eq"
+reason = "Deterministic identities and values use Rust's built-in exact equality derive."
+
+[[source.rust.macros.allow]]
+name = "Hash"
+reason = "Resource tokens use Rust's built-in Hash derive for identity collections."
+
+[[source.rust.macros.allow]]
+name = "Ord"
+reason = "Scheduling identities and deadlines use Rust's built-in total ordering derive."
+
+[[source.rust.macros.allow]]
+name = "PartialEq"
+reason = "Public values and tests use Rust's built-in exact comparison derive."
+
+[[source.rust.macros.allow]]
+name = "PartialOrd"
+reason = "Scheduling identities and deadlines use Rust's built-in partial ordering derive."
+
+[[source.rust.macros.allow]]
+name = "assert"
+reason = "Tests and internal invariant checks use Rust's standard assertion expansion."
+
+[[source.rust.macros.allow]]
+name = "assert_eq"
+reason = "Tests use Rust's standard equality assertion expansion."
+
+[[source.rust.macros.allow]]
+name = "assert_ne"
+reason = "Tests use Rust's standard inequality assertion expansion."
+
+[[source.rust.macros.allow]]
+name = "debug_assert"
+reason = "Debug builds validate bounded internal accounting invariants."
+
+[[source.rust.macros.allow]]
+name = "format"
+reason = "Diagnostics and tests use Rust's standard bounded formatting expansion."
+
+[[source.rust.macros.allow]]
+name = "matches"
+reason = "State transitions and tests use Rust's standard pattern predicate."
+
+[[source.rust.macros.allow]]
+name = "panic"
+reason = "Impossible internal states and deliberate panic-path tests retain explicit diagnostics."
+
+[[source.rust.macros.allow]]
+name = "println"
+reason = "Examples report bounded completion summaries to standard output."
+
+[[source.rust.macros.allow]]
+name = "vec"
+reason = "Examples and tests construct bounded owned fixtures."
+
+[[source.rust.macros.allow]]
+name = "write"
+reason = "Error Display implementations use Rust's standard formatter expansion."
+
+[source.rust.hygiene]
+unsafe = "deny"
+lint_suppressions = "deny"
+deny_methods = ["unwrap", "expect"]
+deny_macros = ["todo", "unimplemented", "unreachable", "dbg"]
+
+[source.rust.size.facade]
+target = 80
+hard = 120
+
+[source.rust.size.implementation]
+target = 240
+hard = 300
+
+[source.rust.size.test]
+target = 300
+hard = 300
+
+[source.rust.size.auxiliary]
+target = 300
+hard = 300
+
+[[layer]]
+name = "core"
+packages = ["calandria"]
+may_depend_on = []
+reason = "Runtime-neutral ownership and lifecycle contracts remain independent of adapters."
+
+[layer.dependencies]
+external = "locked"
+
+[[layer]]
+name = "adapters"
+packages = ["calandria-mio", "calandria-sim"]
+may_depend_on = ["core"]
+reason = "Production readiness and deterministic simulation depend only on the core contracts."
+
+[layer.dependencies]
+external = "locked"

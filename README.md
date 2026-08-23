@@ -72,7 +72,8 @@ scripts/check
 ```
 
 This is the complete gate for formatting, feature combinations, tests,
-examples, Clippy, rustdoc, package contents, source shape, and clean diffs.
+examples, Clippy, rustdoc, package contents, source shape, zrail architecture,
+and clean diffs.
 
 Calandria requires Rust 1.88 or newer. `0.0.1-rc.1` is a release candidate.
 
