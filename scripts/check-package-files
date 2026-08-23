@@ -23,4 +23,8 @@ for package in calandria calandria-mio calandria-sim; do
     printf 'package %s does not include NOTICE\n' "${package}" >&2
     exit 1
   fi
+  if ! grep -qx 'README.md' <<<"${package_files}"; then
+    printf 'package %s does not include README.md\n' "${package}" >&2
+    exit 1
+  fi
 done

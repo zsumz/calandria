@@ -7,6 +7,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
+readme = "README.md"
 documentation = "https://docs.rs/calandria-mio"
 description = "Mio readiness adapter for Calandria reactors"
 keywords = ["reactor", "mio", "event-loop", "networking"]
