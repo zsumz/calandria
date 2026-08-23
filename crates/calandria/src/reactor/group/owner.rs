@@ -13,6 +13,12 @@ use super::{
 };
 
 /// Live static group of independently owned reactor threads.
+///
+/// Graceful stop remains downstream duty policy. Group machinery retains
+/// sender authority, so dropping user-held ingress handles does not close the
+/// group or initiate shutdown. A downstream should admit explicit stop
+/// messages and let each duty close or drain its receiver as domain policy
+/// requires. [`Self::request_termination`] is the fail-safe alternative.
 #[must_use = "dropping the group detaches observation and does not terminate its reactors"]
 pub struct ReactorGroup<D, C, W, T>
 where
@@ -45,11 +51,18 @@ where
     }
 
     /// Creates another bounded typed ingress handle.
+    ///
+    /// Dropping this handle or any clone does not initiate graceful stop; the
+    /// live group retains its own sender authority.
     pub fn handle(&self) -> ReactorGroupHandle<T> {
         self.ingress.clone()
     }
 
-    /// Closes ingress, publishes every termination, then runs best-effort wakes.
+    /// Closes ingress and requests fail-safe termination of every reactor.
+    ///
+    /// This is not a graceful domain shutdown: it does not ask duties to drain
+    /// retained work or translate termination into domain success. It publishes
+    /// every framework termination before running best-effort wakes.
     pub fn request_termination(&self) -> ReactorGroupTermination {
         self.control.request_termination()
     }
@@ -66,7 +79,11 @@ where
         self.supervisor.is_finished()
     }
 
-    /// Joins the supervisor and returns every ordered member exit.
+    /// Observes terminal group state and returns every ordered member exit.
+    ///
+    /// This method does not initiate graceful stop or fail-safe termination. It
+    /// may block indefinitely unless every duty is already on a path to stop,
+    /// fail, or observe a termination request.
     pub fn join(self) -> thread::Result<ReactorGroupExit<D, C, W>> {
         self.supervisor.join().map(ReactorGroupExit::new)
     }

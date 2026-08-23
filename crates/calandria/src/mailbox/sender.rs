@@ -36,8 +36,10 @@ impl<T> MailboxSender<T> {
     /// Capacity is proven and the owner wake is requested before `materialize`
     /// consumes `owner`. Any rejection returns the original owner unchanged.
     /// `retained_bytes` must report the variable memory that the materialized
-    /// queued value will retain. Both callbacks must be fast, deterministic,
-    /// and infallible.
+    /// queued value will retain. `materialize` runs while the mailbox lock is
+    /// held, so it must not reenter this mailbox, wait for work that requires
+    /// this mailbox, or invoke arbitrary blocking consumer code. Both callbacks
+    /// must be fast, deterministic, and infallible.
     pub fn try_send_materialized<U>(
         &self,
         lane: Lane,
