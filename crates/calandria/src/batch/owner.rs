@@ -11,6 +11,7 @@ use super::{EventBatchError, EventBatchFailure, EventBatchLimits, EventBatchSnap
 #[derive(Debug)]
 pub struct EventBatch<E> {
     limits: EventBatchLimits,
+    measure: fn(&E) -> RetainedBytes,
     events: Vec<Entry<E>>,
     retained: RetainedBytes,
 }
@@ -18,8 +19,16 @@ pub struct EventBatch<E> {
 impl<E: Retained> EventBatch<E> {
     /// Allocates an empty batch with fixed logical limits.
     pub fn new(limits: EventBatchLimits) -> Self {
+        Self::with_measure(limits, E::retained_bytes)
+    }
+}
+
+impl<E> EventBatch<E> {
+    /// Allocates an empty batch using an explicit retained-byte measurement.
+    pub fn with_measure(limits: EventBatchLimits, measure: fn(&E) -> RetainedBytes) -> Self {
         Self {
             limits,
+            measure,
             events: Vec::with_capacity(limits.events().get()),
             retained: RetainedBytes::ZERO,
         }
@@ -56,7 +65,7 @@ impl<E: Retained> EventBatch<E> {
             ));
         }
 
-        let retained = event.retained_bytes();
+        let retained = (self.measure)(&event);
         let Some(next_retained) = self.retained.checked_add(retained) else {
             return Err(EventBatchError::new(
                 event,

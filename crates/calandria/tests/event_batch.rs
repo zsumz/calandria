@@ -139,6 +139,25 @@ fn clear_restores_empty_accounting_and_reuses_storage_contract() {
     assert_eq!(batch.first(), Some(&Event::new(2, 8)));
 }
 
+#[test]
+fn explicit_measurement_accepts_a_foreign_event_type() {
+    let limits = EventBatchLimits::new(nonzero_usize(2), RetainedBytes::new(3));
+    let mut batch = EventBatch::<Vec<u8>>::with_measure(limits, |event| {
+        RetainedBytes::try_from(event.len())
+            .unwrap_or_else(|_| panic!("test event length must fit retained accounting"))
+    });
+
+    batch
+        .try_push(vec![1, 2, 3])
+        .unwrap_or_else(|error| panic!("measured event must fit: {error}"));
+    let Err(error) = batch.try_push(vec![4]) else {
+        panic!("measured event must exceed retained-byte capacity");
+    };
+
+    assert_eq!(error.into_event(), vec![4]);
+    assert_eq!(batch.snapshot().retained_bytes(), RetainedBytes::new(3));
+}
+
 fn batch(events: usize, retained: u64) -> EventBatch<Event> {
     EventBatch::new(EventBatchLimits::new(
         nonzero_usize(events),

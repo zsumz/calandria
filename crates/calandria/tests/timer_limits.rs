@@ -145,6 +145,35 @@ fn identity_exhaustion_is_explicit_after_the_last_token() {
     assert!(timers.is_empty());
 }
 
+#[test]
+fn explicit_measurement_supports_foreign_values_and_identity_floors() {
+    let limits = TimerLimits::new(nonzero_usize(2), RetainedBytes::new(8));
+    let measure = |value: &String| {
+        RetainedBytes::try_from(value.len())
+            .unwrap_or_else(|_| panic!("test value length must fit retained accounting"))
+    };
+    let mut timers = TimerQueue::with_measure(TimerOwnerId::new(2), limits, measure);
+    let token = timers
+        .schedule(deadline(10), String::from("four"))
+        .unwrap_or_else(|error| panic!("measured timer must fit: {error}"));
+    assert_eq!(
+        timers.cancel(token).map(calandria::Timer::into_value),
+        Some(String::from("four"))
+    );
+
+    let mut restored = TimerQueue::starting_at_with_measure(
+        TimerOwnerId::new(3),
+        limits,
+        TimerId::new(7),
+        measure,
+    );
+    let token = restored
+        .schedule(deadline(20), String::from("eight"))
+        .unwrap_or_else(|error| panic!("restored measured timer must fit: {error}"));
+    assert_eq!(token.id(), TimerId::new(7));
+    assert_eq!(restored.snapshot().retained_bytes(), RetainedBytes::new(5));
+}
+
 fn queue(count: usize, retained: u64) -> TimerQueue<Item> {
     TimerQueue::new(
         TimerOwnerId::new(1),

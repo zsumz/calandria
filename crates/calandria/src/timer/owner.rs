@@ -16,6 +16,7 @@ use super::{
 pub struct TimerQueue<T> {
     owner: TimerOwnerId,
     limits: TimerLimits,
+    measure: fn(&T) -> RetainedBytes,
     timers: BinaryHeap<Scheduled<T>>,
     next_id: Option<TimerId>,
     retained: RetainedBytes,
@@ -24,7 +25,7 @@ pub struct TimerQueue<T> {
 impl<T: Retained> TimerQueue<T> {
     /// Creates an empty queue whose first timer identity is zero.
     pub fn new(owner: TimerOwnerId, limits: TimerLimits) -> Self {
-        Self::starting_at(owner, limits, TimerId::ZERO)
+        Self::with_measure(owner, limits, T::retained_bytes)
     }
 
     /// Creates an empty queue whose first successful admission uses `first_id`.
@@ -33,9 +34,31 @@ impl<T: Retained> TimerQueue<T> {
     /// tests. A queue must never restart below an identity that can still be
     /// presented for cancellation.
     pub fn starting_at(owner: TimerOwnerId, limits: TimerLimits, first_id: TimerId) -> Self {
+        Self::starting_at_with_measure(owner, limits, first_id, T::retained_bytes)
+    }
+}
+
+impl<T> TimerQueue<T> {
+    /// Creates an empty queue using an explicit retained-byte measurement.
+    pub fn with_measure(
+        owner: TimerOwnerId,
+        limits: TimerLimits,
+        measure: fn(&T) -> RetainedBytes,
+    ) -> Self {
+        Self::starting_at_with_measure(owner, limits, TimerId::ZERO, measure)
+    }
+
+    /// Creates a measured queue whose first successful admission uses `first_id`.
+    pub fn starting_at_with_measure(
+        owner: TimerOwnerId,
+        limits: TimerLimits,
+        first_id: TimerId,
+        measure: fn(&T) -> RetainedBytes,
+    ) -> Self {
         Self {
             owner,
             limits,
+            measure,
             timers: BinaryHeap::with_capacity(limits.timers().get()),
             next_id: Some(first_id),
             retained: RetainedBytes::ZERO,
@@ -85,7 +108,7 @@ impl<T: Retained> TimerQueue<T> {
             ));
         }
 
-        let retained = value.retained_bytes();
+        let retained = (self.measure)(&value);
         let next_retained = self.check_retained(deadline, value, retained)?;
         let Some(id) = self.next_id else {
             return Err(TimerScheduleError::new(
