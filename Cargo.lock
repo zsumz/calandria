@@ -13,14 +13,14 @@ dependencies = [
 
 [[package]]
 name = "calandria"
-version = "0.1.0-rc.1"
+version = "0.0.1-rc.1"
 dependencies = [
  "loom",
 ]
 
 [[package]]
 name = "calandria-mio"
-version = "0.1.0-rc.1"
+version = "0.0.1-rc.1"
 dependencies = [
  "calandria",
  "mio",
@@ -28,7 +28,7 @@ dependencies = [
 
 [[package]]
 name = "calandria-sim"
-version = "0.1.0-rc.1"
+version = "0.0.1-rc.1"
 dependencies = [
  "calandria",
 ]
