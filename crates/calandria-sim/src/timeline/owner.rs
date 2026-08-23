@@ -14,6 +14,7 @@ pub struct Timeline<E> {
     pub(super) id: TimelineId,
     pub(super) clock: VirtualClock,
     pub(super) limits: TimelineLimits,
+    measure: fn(&E) -> RetainedBytes,
     pub(super) next_id: Option<u64>,
     pub(super) retained: RetainedBytes,
     pub(super) events: BTreeMap<(Moment, EventId), Entry<E>>,
@@ -22,15 +23,37 @@ pub struct Timeline<E> {
 impl<E: Retained> Timeline<E> {
     /// Creates an empty timeline at [`Moment::ORIGIN`].
     pub fn new(id: TimelineId, limits: TimelineLimits) -> Self {
-        Self::at(id, Moment::ORIGIN, limits)
+        Self::with_measure(id, limits, E::retained_bytes)
     }
 
     /// Creates an empty timeline at an explicit virtual moment.
     pub fn at(id: TimelineId, now: Moment, limits: TimelineLimits) -> Self {
+        Self::at_with_measure(id, now, limits, E::retained_bytes)
+    }
+}
+
+impl<E> Timeline<E> {
+    /// Creates an origin timeline using an explicit retained-byte measurement.
+    pub fn with_measure(
+        id: TimelineId,
+        limits: TimelineLimits,
+        measure: fn(&E) -> RetainedBytes,
+    ) -> Self {
+        Self::at_with_measure(id, Moment::ORIGIN, limits, measure)
+    }
+
+    /// Creates an explicit-moment timeline using a retained-byte measurement.
+    pub fn at_with_measure(
+        id: TimelineId,
+        now: Moment,
+        limits: TimelineLimits,
+        measure: fn(&E) -> RetainedBytes,
+    ) -> Self {
         Self {
             id,
             clock: VirtualClock::at(now),
             limits,
+            measure,
             next_id: Some(0),
             retained: RetainedBytes::ZERO,
             events: BTreeMap::new(),
@@ -147,7 +170,7 @@ impl<E: Retained> Timeline<E> {
             ));
         }
 
-        let retained = event.retained_bytes();
+        let retained = (self.measure)(&event);
         let Some(next_retained) = self.retained.checked_add(retained) else {
             return Err(ScheduleError::new(
                 event,

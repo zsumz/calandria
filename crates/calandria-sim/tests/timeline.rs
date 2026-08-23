@@ -198,6 +198,31 @@ fn planned_outcomes_schedule_with_their_owned_delay() {
     );
 }
 
+#[test]
+fn explicit_measurement_supports_foreign_events_at_origin_and_restored_time() {
+    let measure = |event: &String| {
+        RetainedBytes::try_from(event.len())
+            .unwrap_or_else(|_| panic!("test event length must fit retained accounting"))
+    };
+    let mut origin = Timeline::with_measure(TimelineId::new(2), limits(1, 4), measure);
+    origin
+        .schedule_after(Span::ZERO, String::from("four"))
+        .unwrap_or_else(|error| panic!("measured event must fit: {error}"));
+    assert_eq!(origin.snapshot().retained_bytes(), RetainedBytes::new(4));
+
+    let mut restored = Timeline::at_with_measure(
+        TimelineId::new(3),
+        Moment::from_nanos(9),
+        limits(1, 5),
+        measure,
+    );
+    restored
+        .schedule_after(Span::from_nanos(1), String::from("five!"))
+        .unwrap_or_else(|error| panic!("restored measured event must fit: {error}"));
+    assert_eq!(restored.now(), Moment::from_nanos(9));
+    assert_eq!(restored.snapshot().retained_bytes(), RetainedBytes::new(5));
+}
+
 fn limits(events: usize, bytes: u64) -> TimelineLimits {
     TimelineLimits::new(nonzero_usize(events), RetainedBytes::new(bytes))
 }
