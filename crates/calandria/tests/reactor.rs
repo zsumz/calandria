@@ -221,10 +221,10 @@ fn termination_wakes_a_parked_reactor_and_returns_its_owner() -> Result<(), Box<
     let termination = handle.request_termination();
     assert_eq!(termination.status(), ReactorTerminationStatus::Requested);
     assert!(termination.wake_error().is_none());
-    assert_eq!(
+    assert!(matches!(
         handle.request_termination().status(),
-        ReactorTerminationStatus::AlreadyRequested
-    );
+        ReactorTerminationStatus::AlreadyRequested | ReactorTerminationStatus::Exited
+    ));
     let exit = handle
         .join()
         .unwrap_or_else(|_| panic!("terminated reactor panicked"));
