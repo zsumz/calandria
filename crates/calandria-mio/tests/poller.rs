@@ -2,22 +2,20 @@
 
 use std::{
     error::Error,
-    io,
     net::{SocketAddr, TcpStream as StdTcpStream},
-    num::NonZeroUsize,
 };
 
-use calandria::{
-    Interest, PollEvent, PollEvents, Poller, ResourceGeneration, ResourceOwnerId, ResourceSlotId,
-    ResourceToken, Span,
-};
+use calandria::{Interest, PollEvent, PollEvents, Poller, Span};
 use calandria_mio::{MioError, MioPoller, MioPollerLimits};
-use mio::{Interest as MioInterest, Registry, Token, event::Source, net::TcpListener};
+use mio::net::TcpListener;
 
 #[path = "poller_support/mod.rs"]
 mod support;
 
-use support::supported_compound_interest;
+use support::{
+    RejectLaterSource, RejectingSource, nonzero, resource, supported_compound_interest,
+    unsupported_interest,
+};
 
 #[test]
 fn explicit_wake_releases_the_selector() -> Result<(), Box<dyn Error>> {
@@ -229,81 +227,4 @@ fn wake_handles_are_independent_acknowledgement_domains() -> Result<(), Box<dyn 
     assert!(second.is_requested());
     second.acknowledge();
     Ok(())
-}
-
-#[derive(Debug)]
-struct RejectLaterSource;
-
-impl Source for RejectLaterSource {
-    fn register(
-        &mut self,
-        _registry: &Registry,
-        _token: Token,
-        _interests: MioInterest,
-    ) -> io::Result<()> {
-        Ok(())
-    }
-
-    fn reregister(
-        &mut self,
-        _registry: &Registry,
-        _token: Token,
-        _interests: MioInterest,
-    ) -> io::Result<()> {
-        Err(io::Error::other("planned reregistration rejection"))
-    }
-
-    fn deregister(&mut self, _registry: &Registry) -> io::Result<()> {
-        Err(io::Error::other("planned deregistration rejection"))
-    }
-}
-
-#[derive(Debug)]
-struct RejectingSource;
-
-impl Source for RejectingSource {
-    fn register(
-        &mut self,
-        _registry: &Registry,
-        _token: Token,
-        _interests: MioInterest,
-    ) -> io::Result<()> {
-        Err(io::Error::other("planned registration rejection"))
-    }
-
-    fn reregister(
-        &mut self,
-        _registry: &Registry,
-        _token: Token,
-        _interests: MioInterest,
-    ) -> io::Result<()> {
-        Err(io::Error::other("planned reregistration rejection"))
-    }
-
-    fn deregister(&mut self, _registry: &Registry) -> io::Result<()> {
-        Err(io::Error::other("planned deregistration rejection"))
-    }
-}
-
-fn resource(generation: u64) -> ResourceToken {
-    ResourceToken::new(
-        ResourceOwnerId::new(1),
-        ResourceSlotId::new(0),
-        ResourceGeneration::new(generation),
-    )
-}
-
-fn nonzero(value: usize) -> NonZeroUsize {
-    NonZeroUsize::new(value).unwrap_or_else(|| panic!("test limit must be nonzero"))
-}
-
-fn unsupported_interest() -> Interest {
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    {
-        Interest::AIO
-    }
-    #[cfg(not(any(target_os = "linux", target_os = "android")))]
-    {
-        Interest::PRIORITY
-    }
 }

@@ -13,6 +13,11 @@ use std::{
 
 use calandria::{CompletionError, ShutdownSubscribeError, shutdown_barrier};
 
+#[path = "shutdown_support/mod.rs"]
+mod support;
+
+use support::{nonzero, spawn_subscriber};
+
 #[test]
 fn one_request_admits_every_bounded_subscriber() {
     let (requester, mut completer) = shutdown_barrier(nonzero(2));
@@ -283,27 +288,4 @@ fn terminal_completion_supersedes_a_racing_request_failure() {
         .unwrap_or_else(|_| panic!("subscriber panicked"))
         .unwrap_or_else(|_| panic!("terminal completion must supersede request failure"));
     assert_eq!(completion.wait(), Ok(()));
-}
-
-fn spawn_subscriber(
-    requester: &Arc<calandria::ShutdownRequester>,
-    gate: &Arc<Barrier>,
-    requests: &Arc<AtomicUsize>,
-) -> thread::JoinHandle<calandria::Completion<()>> {
-    let requester = Arc::clone(requester);
-    let gate = Arc::clone(gate);
-    let requests = Arc::clone(requests);
-    thread::spawn(move || {
-        gate.wait();
-        requester
-            .subscribe(|| {
-                requests.fetch_add(1, Ordering::SeqCst);
-                Ok::<_, ()>(())
-            })
-            .unwrap_or_else(|_| panic!("admit concurrent shutdown observer"))
-    })
-}
-
-fn nonzero(value: usize) -> NonZeroUsize {
-    NonZeroUsize::new(value).unwrap_or_else(|| panic!("test capacity must be nonzero"))
 }

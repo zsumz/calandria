@@ -1,14 +1,19 @@
 //! Scheduler, monitor, and delivery commit-boundary lifecycle tests.
 
-use core::{convert::Infallible, fmt};
+use core::convert::Infallible;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
 use calandria::{Deadline, Moment, Turn, WorkCount};
 use calandria_sim::{
     ActionContext, ActionKey, ActionMeta, ActionRecord, Delivery, DutyId, KernelFailure, Model,
     Monitor, ReadySet, Scheduler, Simulation, SimulationLimits, SimulationPhase, SimulationView,
-    Step, StepError, TimelineId, Topology,
+    Step, StepError, TimelineId,
 };
+
+#[path = "simulation_consumer_support/mod.rs"]
+mod support;
+
+use support::{PlannedFailure, topology};
 
 #[derive(Clone, Copy, Debug)]
 enum Behavior {
@@ -71,17 +76,6 @@ impl Model for World {
         Ok(Turn::waiting())
     }
 }
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct PlannedFailure;
-
-impl fmt::Display for PlannedFailure {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("planned scheduler failure")
-    }
-}
-
-impl core::error::Error for PlannedFailure {}
 
 #[derive(Clone, Copy, Debug)]
 enum Hook {
@@ -300,9 +294,4 @@ fn scheduled(hook: Hook) -> Simulation<World, HookScheduler> {
         HookScheduler(hook),
     )
     .unwrap_or_else(|error| panic!("simulation must build: {error}"))
-}
-
-fn topology() -> Topology {
-    Topology::new([DutyId::new(1)])
-        .unwrap_or_else(|error| panic!("topology must be valid: {error}"))
 }

@@ -1,11 +1,16 @@
 //! Embedded duty-host scheduling and terminal-state tests.
 
-use std::{collections::VecDeque, convert::Infallible, error::Error, fmt};
+use std::{collections::VecDeque, convert::Infallible};
 
 use calandria::{
     Clock, Deadline, Duty, EmbeddedHost, HostAction, HostConfig, HostError, HostPhase, Moment,
     MonotonicClock, Next, Span, Turn, WorkCount,
 };
+
+#[path = "host_support/mod.rs"]
+mod support;
+
+use support::{ClockExhausted, DutyFailure};
 
 #[derive(Debug)]
 struct ScriptClock {
@@ -27,17 +32,6 @@ impl Clock for ScriptClock {
         self.moments.pop_front().ok_or(ClockExhausted)
     }
 }
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct ClockExhausted;
-
-impl fmt::Display for ClockExhausted {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("script clock exhausted")
-    }
-}
-
-impl Error for ClockExhausted {}
 
 #[derive(Debug)]
 struct RecordingDuty {
@@ -62,17 +56,6 @@ impl Duty for RecordingDuty {
         self.turn
     }
 }
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct DutyFailure;
-
-impl fmt::Display for DutyFailure {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("planned duty failure")
-    }
-}
-
-impl Error for DutyFailure {}
 
 #[test]
 fn cloned_monotonic_clocks_share_one_transferable_time_domain() {

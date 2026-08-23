@@ -1,52 +1,19 @@
 //! Public deterministic value, limit, topology, and failure contracts.
 
-use core::num::NonZeroUsize;
-use std::{error::Error, fmt};
+use std::error::Error;
 
 use calandria::{Moment, RetainedBytes, Span};
 use calandria_sim::{
     ActionKey, ClockError, DutyId, EntropySeed, EntropyStreamId, InjectionFailure, KernelFailure,
-    LimitFailure, Plan, Planned, RunError, ScheduleFailure, ScriptBuildFailure, ScriptFailure,
+    LimitFailure, RunError, ScheduleFailure, ScriptBuildFailure, ScriptFailure,
     SimulationBuildFailure, SimulationPhase, StepError, Topology, TopologyError, TraceError,
     TraceLimits,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct PlannedFailure;
+#[path = "public_contracts_support/mod.rs"]
+mod support;
 
-impl fmt::Display for PlannedFailure {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("planned failure")
-    }
-}
-
-impl Error for PlannedFailure {}
-
-#[test]
-fn planned_values_and_finite_plans_preserve_order_delay_and_ownership() {
-    let planned = Planned::new(Span::from_nanos(3), String::from("first"));
-    assert_eq!(planned.delay(), Span::from_nanos(3));
-    assert_eq!(planned.outcome(), "first");
-    let mapped = planned.map(|value| value.len());
-    assert_eq!(mapped, Planned::new(Span::from_nanos(3), 5));
-    assert_eq!(mapped.into_outcome(), 5);
-
-    let outcomes = [
-        Planned::new(Span::from_nanos(2), 20),
-        Planned::new(Span::from_nanos(1), 10),
-    ];
-    let plan: Plan<_> = outcomes.clone().into_iter().collect();
-    assert_eq!(plan.len(), 2);
-    assert!(!plan.is_empty());
-    assert_eq!(plan.outcomes(), outcomes);
-    assert_eq!(plan.into_outcomes(), outcomes);
-
-    let empty = Plan::<u8>::empty();
-    assert!(empty.is_empty());
-    assert!(Plan::<u8>::default().is_empty());
-    let single = Plan::single(Planned::new(Span::ZERO, 7));
-    assert_eq!(single.into_outcomes(), [Planned::new(Span::ZERO, 7)]);
-}
+use support::{PlannedFailure, nonzero, nonzero_u64};
 
 #[test]
 fn script_failures_have_exact_capacity_overflow_and_request_diagnostics() {
@@ -306,12 +273,4 @@ fn fixed_identity_and_trace_limit_accessors_round_trip() {
     let limits = TraceLimits::new(nonzero(5), RetainedBytes::new(7));
     assert_eq!(limits.entries(), nonzero(5));
     assert_eq!(limits.retained_bytes(), RetainedBytes::new(7));
-}
-
-fn nonzero(value: usize) -> NonZeroUsize {
-    NonZeroUsize::new(value).unwrap_or_else(|| panic!("test limit must be nonzero"))
-}
-
-fn nonzero_u64(value: u64) -> core::num::NonZeroU64 {
-    core::num::NonZeroU64::new(value).unwrap_or_else(|| panic!("test limit must be nonzero"))
 }

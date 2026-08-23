@@ -1,14 +1,17 @@
 //! Singular reactor lifecycle, notification, failure, and termination tests.
 
-use std::{
-    convert::Infallible, error::Error, fmt, io, num::NonZeroUsize, sync::mpsc, time::Duration,
-};
+use std::{convert::Infallible, error::Error, io, sync::mpsc, time::Duration};
 
 use calandria::{
     DrainStatus, Duty, HostConfig, HostPhase, LaneLimits, MailboxLimits, MailboxReceiver, Moment,
     MonotonicClock, Reactor, ReactorFailure, ReactorOutcome, ReactorTerminationStatus, Retained,
-    RetainedBytes, Span, Turn, WaitOutcome, Waiter, WakeHandle, WorkCount, mailbox, thread_parker,
+    RetainedBytes, Span, Turn, WakeHandle, WorkCount, mailbox, thread_parker,
 };
+
+#[path = "reactor_support/mod.rs"]
+mod support;
+
+use support::{FailingWaiter, WaitFailure, WaitingDuty, nonzero_usize};
 
 #[derive(Debug, Eq, PartialEq)]
 struct Frame(Vec<u8>);
@@ -159,43 +162,6 @@ fn repeated_publication_wakes_survive_owner_parking() -> Result<(), Box<dyn Erro
     Ok(())
 }
 
-#[derive(Debug)]
-struct WaitingDuty;
-
-impl Duty for WaitingDuty {
-    type Error = Infallible;
-
-    fn turn(&mut self, _now: Moment) -> Result<Turn, Self::Error> {
-        Ok(Turn::waiting())
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct WaitFailure;
-
-impl fmt::Display for WaitFailure {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("planned wait failure")
-    }
-}
-
-impl Error for WaitFailure {}
-
-#[derive(Debug)]
-struct FailingWaiter;
-
-impl Waiter<WaitingDuty> for FailingWaiter {
-    type Error = WaitFailure;
-
-    fn wait(
-        &mut self,
-        _duty: &mut WaitingDuty,
-        _maximum: Span,
-    ) -> Result<WaitOutcome, Self::Error> {
-        Err(WaitFailure)
-    }
-}
-
 #[test]
 fn waiting_failure_returns_the_owned_terminal_duty() -> Result<(), Box<dyn Error>> {
     let reactor = Reactor::new(
@@ -308,8 +274,4 @@ fn spawn_failure_returns_the_unstarted_reactor() {
     };
     let reactor = error.into_reactor();
     assert!(matches!(reactor.duty(), WaitingDuty));
-}
-
-fn nonzero_usize(value: usize) -> NonZeroUsize {
-    NonZeroUsize::new(value).unwrap_or_else(|| panic!("test limit must be nonzero"))
 }
