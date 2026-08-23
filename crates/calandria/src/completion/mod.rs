@@ -7,6 +7,6 @@ mod producer;
 mod shared;
 
 pub use error::CompletionError;
-pub use factory::completion;
+pub use factory::{completion, completion_retained_bytes};
 pub use observer::Completion;
 pub use producer::Completer;

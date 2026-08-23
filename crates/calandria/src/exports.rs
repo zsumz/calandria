@@ -6,7 +6,9 @@ pub use crate::batch::{
     EventBatchSnapshot,
 };
 #[cfg(feature = "std")]
-pub use crate::completion::{Completer, Completion, CompletionError, completion};
+pub use crate::completion::{
+    Completer, Completion, CompletionError, completion, completion_retained_bytes,
+};
 pub use crate::host::{
     Clock, Duty, EmbeddedHost, HostAction, HostConfig, HostError, HostPhase, HostSnapshot, HostStep,
 };

@@ -11,7 +11,7 @@ use std::{
     thread,
 };
 
-use calandria::{Completion, CompletionError, completion};
+use calandria::{Completion, CompletionError, completion, completion_retained_bytes};
 
 #[test]
 fn blocking_wait_receives_the_producer_value() {
@@ -67,12 +67,34 @@ fn observer_drop_returns_an_undelivered_value() {
 
 #[test]
 fn nonblocking_observation_is_pending_then_consumes_once() {
-    let (mut completion, completer) = completion();
+    let (completion, completer) = completion();
 
     assert!(completion.try_take().is_none());
     assert_eq!(completer.complete(7), Ok(()));
     assert_eq!(completion.try_take(), Some(Ok(7)));
     assert_eq!(completion.try_take(), Some(Err(CompletionError::Consumed)));
+}
+
+#[test]
+fn registered_observation_remains_mutably_exclusive() {
+    let (mut completion, completer) = completion::<u8>();
+    let wake_count = Arc::new(WakeCount::default());
+    let waker = Waker::from(Arc::clone(&wake_count));
+    let mut context = Context::from_waker(&waker);
+
+    assert_eq!(completion.poll_take(&mut context), Poll::Pending);
+    assert_eq!(completer.complete(11), Ok(()));
+    assert_eq!(wake_count.get(), 1);
+    assert_eq!(completion.poll_take(&mut context), Poll::Ready(Ok(11)));
+}
+
+#[test]
+fn completion_footprint_tracks_the_owned_shared_payload() {
+    let small = completion_retained_bytes::<u8>();
+    let large = completion_retained_bytes::<[u8; 256]>();
+
+    assert!(small.get() > 0);
+    assert!(large > small);
 }
 
 #[test]

@@ -35,8 +35,16 @@ impl<T> Completion<T> {
     ///
     /// A returned `Some` consumes the single outcome. Later extraction or
     /// polling reports [`CompletionError::Consumed`].
-    pub fn try_take(&mut self) -> Option<Result<T, CompletionError>> {
+    pub fn try_take(&self) -> Option<Result<T, CompletionError>> {
         self.shared.try_take()
+    }
+
+    /// Polls for and consumes the terminal result using one exclusive observer.
+    ///
+    /// Mutable access preserves one active task-waker registration. Repeated
+    /// pending polls replace a stale waker; a ready result is consumed once.
+    pub fn poll_take(&mut self, context: &mut Context<'_>) -> Poll<Result<T, CompletionError>> {
+        self.shared.poll(context)
     }
 
     /// Explicitly abandons observation without cancelling producer work.
@@ -49,7 +57,7 @@ impl<T> Future for Completion<T> {
     type Output = Result<T, CompletionError>;
 
     fn poll(self: Pin<&mut Self>, context: &mut Context<'_>) -> Poll<Self::Output> {
-        self.shared.poll(context)
+        self.get_mut().poll_take(context)
     }
 }
 

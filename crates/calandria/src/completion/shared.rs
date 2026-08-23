@@ -6,6 +6,8 @@ use std::{
     task::{Context, Poll, Waker},
 };
 
+use crate::retained::RetainedBytes;
+
 use super::CompletionError;
 
 pub(super) struct Shared<T> {
@@ -24,6 +26,11 @@ enum State<T> {
     },
     Ready(Result<T, CompletionError>),
     Consumed,
+}
+
+pub(super) fn retained_bytes<T>() -> RetainedBytes {
+    RetainedBytes::try_from(mem::size_of::<Inner<T>>())
+        .unwrap_or_else(|_| panic!("completion payload exceeds retained-byte accounting"))
 }
 
 impl<T> Shared<T> {
