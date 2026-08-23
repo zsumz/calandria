@@ -3,6 +3,7 @@ set -euo pipefail
 
 for crate_dir in crates/calandria crates/calandria-mio crates/calandria-sim; do
   cmp LICENSE "${crate_dir}/LICENSE"
+  cmp NOTICE "${crate_dir}/NOTICE"
 done
 
 for package in calandria calandria-mio calandria-sim; do
@@ -16,6 +17,10 @@ for package in calandria calandria-mio calandria-sim; do
   )"
   if ! grep -qx 'LICENSE' <<<"${package_files}"; then
     printf 'package %s does not include LICENSE\n' "${package}" >&2
+    exit 1
+  fi
+  if ! grep -qx 'NOTICE' <<<"${package_files}"; then
+    printf 'package %s does not include NOTICE\n' "${package}" >&2
     exit 1
   fi
 done
