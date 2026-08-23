@@ -9,7 +9,7 @@ use core::{
 use calandria::{Deadline, Moment, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
     ActionContext, ActionKey, ActionRecord, Delivery, DutyId, Fifo, LimitFailure, Model, Monitor,
-    NoopMonitor, ReadySet, Scheduler, Simulation, SimulationBuildError, SimulationLimits,
+    NoopMonitor, ReadySet, Scheduler, Simulation, SimulationBuildFailure, SimulationLimits,
     SimulationPhase, SimulationView, StepError, TimelineId, TimelineLimits, Topology,
 };
 
@@ -204,8 +204,8 @@ fn initial_time_cannot_begin_beyond_the_ceiling() {
         panic!("simulation construction must fail");
     };
     assert!(matches!(
-        error,
-        SimulationBuildError::InitialTimeBeyondLimit { .. }
+        error.failure(),
+        SimulationBuildFailure::InitialTimeBeyondLimit { .. }
     ));
 }
 
@@ -214,14 +214,25 @@ fn ready_capacity_overflow_is_rejected_before_allocation() {
     let event_capacity =
         NonZeroUsize::new(usize::MAX).unwrap_or_else(|| panic!("maximum usize must be nonzero"));
     let limits = SimulationLimits::new(TimelineLimits::new(event_capacity, RetainedBytes::ZERO));
-    let Err(error) = Simulation::new(TimelineId::new(46), AlwaysRunnable, one_duty(), limits)
-    else {
+    let Err(error) = Simulation::with_scheduler(
+        TimelineId::new(46),
+        AlwaysRunnable,
+        one_duty(),
+        limits,
+        InvalidScheduler,
+    ) else {
         panic!("combined ready capacity must overflow");
     };
     assert!(matches!(
-        error,
-        SimulationBuildError::ReadyCapacityOverflow { .. }
+        error.failure(),
+        SimulationBuildFailure::ReadyCapacityOverflow { .. }
     ));
+    let (failure, AlwaysRunnable, topology, InvalidScheduler, _) = error.into_parts();
+    assert!(matches!(
+        failure,
+        SimulationBuildFailure::ReadyCapacityOverflow { .. }
+    ));
+    assert_eq!(topology.duties(), [DutyId::new(0)]);
 }
 
 fn one_duty() -> Topology {

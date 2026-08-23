@@ -9,8 +9,8 @@ use std::panic::{AssertUnwindSafe, catch_unwind};
 use calandria::{Deadline, Moment, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
     ActionContext, Delivery, DutyId, KernelFailure, LimitFailure, Model, RunEnd, RunError,
-    Simulation, SimulationBuildError, SimulationLimits, SimulationPhase, Step, StepError, Timeline,
-    TimelineId, TimelineLimits, Topology,
+    Simulation, SimulationBuildFailure, SimulationLimits, SimulationPhase, Step, StepError,
+    Timeline, TimelineId, TimelineLimits, Topology,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -172,8 +172,8 @@ fn configured_limits_and_build_rejections_are_exact() {
         panic!("oversized topology must reject");
     };
     assert_eq!(
-        error,
-        SimulationBuildError::DutyCapacity {
+        *error.failure(),
+        SimulationBuildFailure::DutyCapacity {
             limit: nonzero_usize(1),
             actual: 2,
         }
@@ -182,6 +182,9 @@ fn configured_limits_and_build_rejections_are_exact() {
         error.to_string(),
         "simulation topology has 2 duties but limit is 1"
     );
+    let (_, World(behavior), topology, _, _) = error.into_parts();
+    assert!(matches!(behavior, Behavior::Waiting));
+    assert_eq!(topology.duties(), [DutyId::new(1), DutyId::new(2)]);
 }
 
 #[test]

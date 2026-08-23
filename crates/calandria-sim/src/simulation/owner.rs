@@ -13,8 +13,8 @@ use crate::{
 };
 
 use super::{
-    DutySnapshot, DutyState, Monitor, SimulationBuildError, SimulationLimits, SimulationPhase,
-    SimulationSnapshot,
+    DutySnapshot, DutyState, Monitor, SimulationBuildError, SimulationBuildFailure,
+    SimulationLimits, SimulationPhase, SimulationSnapshot,
 };
 
 /// Deterministic execution owner for one static set of bounded duties.
@@ -43,7 +43,7 @@ impl<M: Model> Simulation<M, Fifo, NoopMonitor> {
         model: M,
         topology: Topology,
         limits: SimulationLimits,
-    ) -> Result<Self, SimulationBuildError> {
+    ) -> Result<Self, SimulationBuildError<M, Fifo, NoopMonitor>> {
         Self::with_parts(
             id,
             Moment::ORIGIN,
@@ -64,7 +64,7 @@ impl<M: Model, S: Scheduler> Simulation<M, S, NoopMonitor> {
         topology: Topology,
         limits: SimulationLimits,
         scheduler: S,
-    ) -> Result<Self, SimulationBuildError> {
+    ) -> Result<Self, SimulationBuildError<M, S, NoopMonitor>> {
         Self::with_parts(
             id,
             Moment::ORIGIN,
@@ -92,32 +92,40 @@ where
         limits: SimulationLimits,
         scheduler: S,
         monitor: N,
-    ) -> Result<Self, SimulationBuildError> {
-        if topology.len() > limits.max_duties().get() {
-            return Err(SimulationBuildError::DutyCapacity {
+    ) -> Result<Self, SimulationBuildError<M, S, N>> {
+        let events = limits.timeline().pending_events();
+        let ready_capacity = topology.len().checked_add(events.get());
+        let failure = if topology.len() > limits.max_duties().get() {
+            Some(SimulationBuildFailure::DutyCapacity {
                 limit: limits.max_duties(),
                 actual: topology.len(),
-            });
-        }
-        if now > limits.max_virtual_time() {
-            return Err(SimulationBuildError::InitialTimeBeyondLimit {
+            })
+        } else if now > limits.max_virtual_time() {
+            Some(SimulationBuildFailure::InitialTimeBeyondLimit {
                 initial: now,
                 limit: limits.max_virtual_time(),
-            });
+            })
+        } else if ready_capacity.is_none() {
+            Some(SimulationBuildFailure::ReadyCapacityOverflow {
+                duties: topology.len(),
+                events,
+            })
+        } else {
+            None
+        };
+        if let Some(failure) = failure {
+            return Err(SimulationBuildError::new(
+                failure, model, topology, scheduler, monitor,
+            ));
         }
+        let ready_capacity = ready_capacity
+            .unwrap_or_else(|| panic!("validated simulation ready capacity must fit"));
         let states = topology
             .duties()
             .iter()
             .copied()
             .map(|duty| (duty, DutyState::initial()))
             .collect();
-        let events = limits.timeline().pending_events();
-        let Some(ready_capacity) = topology.len().checked_add(events.get()) else {
-            return Err(SimulationBuildError::ReadyCapacityOverflow {
-                duties: topology.len(),
-                events,
-            });
-        };
         let ready = Vec::with_capacity(ready_capacity);
         Ok(Self {
             model,
@@ -203,6 +211,11 @@ where
     /// Consumes the simulation and returns consumer-owned model state.
     pub fn into_model(self) -> M {
         self.model
+    }
+
+    /// Consumes the simulation and returns every consumer-supplied component.
+    pub fn into_components(self) -> (M, Topology, S, N) {
+        (self.model, self.topology, self.scheduler, self.monitor)
     }
 
     /// Returns bounded deterministic kernel state.

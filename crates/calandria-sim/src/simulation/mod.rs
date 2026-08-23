@@ -14,7 +14,8 @@ mod step;
 mod view;
 
 pub use error::{
-    InjectionError, InjectionFailure, KernelFailure, LimitFailure, SimulationBuildError, StepError,
+    InjectionError, InjectionFailure, KernelFailure, LimitFailure, SimulationBuildError,
+    SimulationBuildFailure, StepError,
 };
 pub use limits::SimulationLimits;
 pub use monitor::{Monitor, NoopMonitor};

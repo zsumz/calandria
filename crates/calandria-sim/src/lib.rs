@@ -41,8 +41,9 @@ pub use script::{
 };
 pub use simulation::{
     DutySnapshot, InjectionError, InjectionFailure, KernelFailure, LimitFailure, Monitor,
-    NoopMonitor, RunEnd, RunError, RunReport, Simulation, SimulationBuildError, SimulationLimits,
-    SimulationPhase, SimulationSnapshot, SimulationView, Step, StepError,
+    NoopMonitor, RunEnd, RunError, RunReport, Simulation, SimulationBuildError,
+    SimulationBuildFailure, SimulationLimits, SimulationPhase, SimulationSnapshot, SimulationView,
+    Step, StepError,
 };
 pub use timeline::{ScheduleError, ScheduleFailure, Timeline, TimelineLimits, TimelineSnapshot};
 pub use trace::{Trace, TraceEntry, TraceError, TraceLimits, TraceSnapshot};

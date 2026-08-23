@@ -7,7 +7,7 @@ use calandria::{Moment, RetainedBytes, Span};
 use calandria_sim::{
     ActionKey, ClockError, DutyId, EntropySeed, EntropyStreamId, InjectionFailure, KernelFailure,
     LimitFailure, Plan, Planned, RunError, ScheduleFailure, ScriptBuildFailure, ScriptFailure,
-    SimulationBuildError, SimulationPhase, StepError, Topology, TopologyError, TraceError,
+    SimulationBuildFailure, SimulationPhase, StepError, Topology, TopologyError, TraceError,
     TraceLimits,
 };
 
@@ -181,21 +181,21 @@ fn topology_clock_and_construction_failures_are_explicit() {
 
     let build = [
         (
-            SimulationBuildError::DutyCapacity {
+            SimulationBuildFailure::DutyCapacity {
                 limit: nonzero(2),
                 actual: 3,
             },
             "simulation topology has 3 duties but limit is 2",
         ),
         (
-            SimulationBuildError::ReadyCapacityOverflow {
+            SimulationBuildFailure::ReadyCapacityOverflow {
                 duties: usize::MAX,
                 events: nonzero(1),
             },
             "combining 18446744073709551615 duties with 1 pending events overflows ready capacity",
         ),
         (
-            SimulationBuildError::InitialTimeBeyondLimit {
+            SimulationBuildFailure::InitialTimeBeyondLimit {
                 initial: Moment::from_nanos(6),
                 limit: Moment::from_nanos(5),
             },
