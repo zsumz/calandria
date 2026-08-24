@@ -4,8 +4,8 @@ use core::convert::Infallible;
 
 use calandria::{Moment, Retained, RetainedBytes, Turn, WorkCount};
 use calandria_sim::{
-    ActionContext, Delivery, DutyId, EntropySeed, EntropyStreamId, Fifo, Model, RoundRobin, Seeded,
-    SeededError, Simulation, SimulationLimits, Step, TimelineId, Topology,
+    ActionContext, ActionKey, Delivery, DutyId, EntropySeed, EntropyStreamId, Fifo, Model,
+    RoundRobin, Seeded, SeededError, Simulation, SimulationLimits, Step, TimelineId, Topology,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -59,12 +59,16 @@ fn fifo_preserves_equal_time_event_admission_across_owners() {
         Fifo::new(),
     )
     .unwrap_or_else(|error| panic!("simulation must build: {error}"));
-    let _ = simulation
+    let first = simulation
         .inject(DutyId::new(2), Event)
         .unwrap_or_else(|error| panic!("first event must fit: {error}"));
     let _ = simulation
         .inject(DutyId::new(1), Event)
         .unwrap_or_else(|error| panic!("second event must fit: {error}"));
+    let delivery = ActionKey::delivery(DutyId::new(2), first);
+    let turn = ActionKey::turn(DutyId::new(1));
+    assert!(delivery < turn);
+    assert!(turn > delivery);
 
     assert!(matches!(simulation.step(), Ok(Step::Action(_))));
     assert!(matches!(simulation.step(), Ok(Step::Action(_))));

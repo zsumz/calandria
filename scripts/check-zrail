@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""Enforce zrail 0.0.2 with Calandria's reviewed temporary compatibility policy."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_VERSION = "zrail 0.0.2"
+EXPECTED_LIMITATIONS = {
+    ("crates/calandria/src/completion/shared.rs", 16, 12),
+    ("crates/calandria/src/host/clock.rs", 42, 13),
+    ("crates/calandria/src/host/waiter.rs", 90, 34),
+    ("crates/calandria/src/io/event.rs", 15, 16),
+    ("crates/calandria/src/mailbox/factory.rs", 18, 11),
+    ("crates/calandria/src/mailbox/receiver.rs", 13, 24),
+    ("crates/calandria/src/mailbox/sender.rs", 14, 24),
+    ("crates/calandria/src/mailbox/shared.rs", 18, 23),
+    ("crates/calandria/src/reactor/control.rs", 18, 13),
+    ("crates/calandria/src/reactor/exit.rs", 10, 67),
+    ("crates/calandria/src/reactor/group/admission.rs", 17, 11),
+    ("crates/calandria/src/reactor/group/exit.rs", 14, 8),
+    ("crates/calandria/src/reactor/group/gate.rs", 13, 13),
+    ("crates/calandria/src/reactor/group/member.rs", 14, 14),
+    ("crates/calandria/src/reactor/group/owner.rs", 27, 8),
+    ("crates/calandria/src/reactor/group/port.rs", 11, 13),
+    ("crates/calandria/src/reactor/group/send_error.rs", 22, 13),
+    ("crates/calandria/src/reactor/group/spawn.rs", 20, 8),
+    ("crates/calandria/src/reactor/group/supervisor.rs", 22, 8),
+    ("crates/calandria/src/reactor/group/sync_test.rs", 56, 17),
+    ("crates/calandria/src/reactor/group/termination.rs", 16, 20),
+    ("crates/calandria/src/reactor/group/worker.rs", 13, 57),
+    ("crates/calandria/src/reactor/handle.rs", 20, 8),
+    ("crates/calandria/src/reactor/owner.rs", 23, 8),
+    ("crates/calandria/src/reactor/runner.rs", 17, 8),
+    ("crates/calandria/src/reactor/snapshot.rs", 29, 46),
+    ("crates/calandria/src/reactor/sync_test.rs", 14, 20),
+    ("crates/calandria/src/shutdown/completer.rs", 12, 24),
+    ("crates/calandria/src/shutdown/factory.rs", 15, 18),
+    ("crates/calandria/src/shutdown/requester.rs", 15, 24),
+    ("crates/calandria/src/shutdown/shared.rs", 12, 12),
+    ("crates/calandria/src/sync_test.rs", 23, 20),
+    ("crates/calandria/src/wake.rs", 41, 13),
+}
+
+
+def run(arguments: list[str]) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        arguments,
+        cwd=ROOT,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+def limitation(finding: dict[str, object]) -> tuple[str, int, int] | None:
+    if (
+        finding.get("id") != "RUST-INCLUDE-002"
+        or finding.get("rule") != "rust.source.include-bindings"
+        or finding.get("category") != "source"
+        or finding.get("severity") != "error"
+        or finding.get("analysis") != "unresolved"
+    ):
+        return None
+    path = finding.get("path")
+    span = finding.get("span")
+    if not isinstance(path, str) or not isinstance(span, dict):
+        return None
+    line = span.get("line")
+    column = span.get("column")
+    if not isinstance(line, int) or not isinstance(column, int):
+        return None
+    return path, line, column
+
+
+def main() -> int:
+    version = run(["zrail", "--version"])
+    observed_version = version.stdout.strip()
+    if version.returncode != 0 or observed_version != EXPECTED_VERSION:
+        print(
+            f"expected {EXPECTED_VERSION!r}, observed {observed_version!r}",
+            file=sys.stderr,
+        )
+        return 1
+
+    completed = run(["zrail", "check", "--format", "json", "--limit", "all"])
+    try:
+        report = json.loads(completed.stdout)
+    except json.JSONDecodeError as error:
+        print(completed.stdout, end="", file=sys.stderr)
+        print(completed.stderr, end="", file=sys.stderr)
+        print(f"cannot decode zrail report: {error}", file=sys.stderr)
+        return 1
+
+    findings = report.get("findings")
+    if completed.returncode == 0 and report.get("status") == "pass" and findings == []:
+        print(f"{EXPECTED_VERSION}: pass")
+        return 0
+    if (
+        completed.returncode != 1
+        or report.get("schema") != 2
+        or report.get("status") != "fail"
+        or not isinstance(findings, list)
+    ):
+        print("zrail returned an unexpected exit or report shape", file=sys.stderr)
+        print(json.dumps(report, indent=2), file=sys.stderr)
+        return 1
+
+    observed = {item for finding in findings if (item := limitation(finding))}
+    unexpected = [finding for finding in findings if limitation(finding) is None]
+    if (
+        unexpected
+        or len(findings) != len(EXPECTED_LIMITATIONS)
+        or observed != EXPECTED_LIMITATIONS
+    ):
+        print(json.dumps(report, indent=2), file=sys.stderr)
+        missing = sorted(EXPECTED_LIMITATIONS - observed)
+        added = sorted(observed - EXPECTED_LIMITATIONS)
+        if missing:
+            print(f"missing reviewed limitations: {missing!r}", file=sys.stderr)
+        if added:
+            print(f"new unreviewed limitations: {added!r}", file=sys.stderr)
+        return 1
+
+    print(
+        f"{EXPECTED_VERSION}: accepted {len(observed)} reviewed "
+        "feature-domain binding limitations"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

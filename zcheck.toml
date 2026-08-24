@@ -1,0 +1,128 @@
+schema = 1
+default = "check"
+
+[execution]
+jobs = 4
+default_timeout = "20m"
+repository_state = "preserve"
+
+[tasks.source-shape]
+description = "Enforce the repository source-shape contract."
+run = ["python3", "scripts/check-source-shape"]
+tools = ["python3"]
+inputs = ["scripts/check-source-shape"]
+
+[tasks.zrail]
+description = "Enforce zrail architecture policy and reviewed 0.0.2 compatibility limits."
+run = ["scripts/check-zrail"]
+tools = ["python3", "zrail"]
+inputs = ["zrail.toml", "zrail.lock", "scripts/check-zrail"]
+
+[tasks.git-diff]
+description = "Reject whitespace errors in unstaged repository changes."
+run = ["git", "diff", "--check"]
+tools = ["git"]
+
+[tasks.git-diff-cached]
+description = "Reject whitespace errors in staged repository changes."
+run = ["git", "diff", "--cached", "--check"]
+tools = ["git"]
+
+[tasks.architecture]
+description = "Validate source shape, architecture policy, and diff hygiene."
+needs = ["source-shape", "zrail", "git-diff", "git-diff-cached"]
+
+[tasks.format]
+description = "Validate Rust formatting."
+run = ["cargo", "fmt", "--all", "--", "--check"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.core-minimal]
+description = "Compile the allocation-free Calandria core."
+run = ["cargo", "check", "-p", "calandria", "--no-default-features", "--lib", "--locked"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.core-alloc]
+description = "Compile the allocation-enabled Calandria core."
+run = ["cargo", "check", "-p", "calandria", "--no-default-features", "--features", "alloc", "--lib", "--locked"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.sim]
+description = "Compile the deterministic simulation adapter."
+run = ["cargo", "check", "-p", "calandria-sim", "--lib", "--locked"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.mio]
+description = "Compile the Mio production adapter."
+run = ["cargo", "check", "-p", "calandria-mio", "--lib", "--locked"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.feature-matrix]
+description = "Validate every supported core and adapter feature boundary."
+needs = ["core-minimal", "core-alloc", "sim", "mio"]
+
+[tasks.test]
+description = "Run the complete Rust workspace test suite."
+run = ["cargo", "test", "--workspace", "--all-targets", "--all-features", "--locked"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.loom]
+description = "Run production synchronization under Loom."
+run = ["scripts/check-loom"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+inputs = ["scripts/check-loom"]
+
+[tasks.example-checksum]
+description = "Run the bounded checksum service example."
+run = ["cargo", "run", "-p", "calandria", "--example", "checksum_service", "--all-features", "--locked"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.example-time]
+description = "Run the authoritative time example."
+run = ["cargo", "run", "-p", "calandria", "--example", "authoritative_time", "--all-features", "--locked"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.rust-test]
+description = "Validate feature, behavioral, Loom, and example contracts."
+needs = ["feature-matrix", "test", "loom", "example-checksum", "example-time"]
+
+[tasks.clippy]
+description = "Run Clippy with warnings denied."
+run = ["cargo", "clippy", "--workspace", "--all-targets", "--all-features", "--locked", "--", "-D", "warnings"]
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.docs]
+description = "Build documentation with warnings denied."
+run = ["cargo", "doc", "--workspace", "--all-features", "--no-deps", "--locked"]
+env = { RUSTDOCFLAGS = "-D warnings" }
+tools = ["cargo"]
+resources = ["cargo-target"]
+
+[tasks.rust-lint]
+description = "Validate formatting, lints, and documentation."
+needs = ["format", "clippy", "docs"]
+
+[tasks.package-contracts]
+description = "Verify package metadata and required package files."
+run = ["scripts/check-package-files"]
+tools = ["cargo", "cmp", "grep"]
+resources = ["cargo-target"]
+inputs = ["LICENSE", "NOTICE", "scripts/check-package-files"]
+
+[tasks.package]
+description = "Validate publishable crate archives."
+needs = ["package-contracts"]
+
+[tasks.check]
+description = "Run complete local project qualification."
+needs = ["architecture", "rust-lint", "rust-test", "package"]

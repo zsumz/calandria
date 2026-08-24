@@ -21,8 +21,9 @@ impl Model for StoppingWorld {
         &mut self,
         _duty: DutyId,
         _now: Moment,
-        _context: &mut ActionContext<'_, Self::Event, Self::Observation>,
+        context: &mut ActionContext<'_, Self::Event, Self::Observation>,
     ) -> Result<Turn, Self::Error> {
+        assert_eq!(context.action().get(), 0);
         Ok(Turn::stopped(WorkCount::new(1)))
     }
 
@@ -130,6 +131,42 @@ impl Scheduler for ChooseTwice {
     fn choose(&mut self, now: Moment, ready: ReadySet<'_>) -> Result<ActionKey, Self::Error> {
         let _ = self.replay.choose(now, ready)?;
         self.replay.choose(now, ready)
+    }
+}
+
+#[test]
+fn replay_rejects_completion_while_a_selection_awaits_commit() {
+    let (replay, _) = recorded_action();
+    let mut simulation = Simulation::with_scheduler(
+        TimelineId::new(83),
+        StoppingWorld,
+        topology([1]),
+        SimulationLimits::default(),
+        DropCommits(replay),
+    )
+    .unwrap_or_else(|error| panic!("pending-commit replay must build: {error}"));
+    assert!(simulation.step().is_ok());
+    assert_eq!(simulation.scheduler().0.position().get(), 0);
+    let Err(error) = simulation.step() else {
+        panic!("completion with an uncommitted selection must diverge");
+    };
+    assert!(matches!(
+        error,
+        StepError::Scheduler(ReplayDivergence::PendingCommit { .. })
+    ));
+}
+
+struct DropCommits(Replay);
+
+impl Scheduler for DropCommits {
+    type Error = ReplayDivergence;
+
+    fn choose(&mut self, now: Moment, ready: ReadySet<'_>) -> Result<ActionKey, Self::Error> {
+        self.0.choose(now, ready)
+    }
+
+    fn finished(&mut self) -> Result<(), Self::Error> {
+        self.0.finished()
     }
 }
 

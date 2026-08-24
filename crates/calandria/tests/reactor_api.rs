@@ -4,8 +4,8 @@ use core::convert::Infallible;
 use std::error::Error;
 
 use calandria::{
-    Clock, Duty, HostConfig, Moment, Reactor, Span, Turn, WaitOutcome, Waiter, WakeHandle,
-    WorkCount,
+    Clock, Duty, HostConfig, Moment, Reactor, ReactorOutcome, Span, Turn, WaitOutcome, Waiter,
+    WakeHandle, WorkCount,
 };
 
 #[derive(Debug)]
@@ -51,6 +51,35 @@ impl Waiter<StoppingDuty> for RecordingWaiter {
     }
 }
 
+#[derive(Debug)]
+struct WaitOnce {
+    ready_to_stop: bool,
+}
+
+impl Duty for WaitOnce {
+    type Error = Infallible;
+
+    fn turn(&mut self, _now: Moment) -> Result<Turn, Self::Error> {
+        if self.ready_to_stop {
+            Ok(Turn::stopped(WorkCount::new(1)))
+        } else {
+            Ok(Turn::waiting())
+        }
+    }
+}
+
+#[derive(Debug)]
+struct IdleOnce;
+
+impl Waiter<WaitOnce> for IdleOnce {
+    type Error = Infallible;
+
+    fn wait(&mut self, duty: &mut WaitOnce, _maximum: Span) -> Result<WaitOutcome, Self::Error> {
+        duty.ready_to_stop = true;
+        Ok(WaitOutcome::Idle)
+    }
+}
+
 #[test]
 fn reactor_exposes_owned_components_before_execution() {
     let mut reactor = reactor();
@@ -63,6 +92,26 @@ fn reactor_exposes_owned_components_before_execution() {
     assert_eq!(host.duty().work, 2);
     assert_eq!(host.config(), HostConfig::new(Span::from_nanos(5)));
     assert_eq!(waiter.marker, 4);
+}
+
+#[test]
+fn reactor_records_an_idle_wait_before_stopping() {
+    let exit = Reactor::new(
+        WaitOnce {
+            ready_to_stop: false,
+        },
+        FixedClock {
+            now: Moment::ORIGIN,
+        },
+        IdleOnce,
+        WakeHandle::new(|| Ok(())),
+    )
+    .run();
+
+    assert!(matches!(exit.outcome(), ReactorOutcome::Stopped));
+    assert_eq!(exit.reactor_snapshot().waits(), 1);
+    assert_eq!(exit.reactor_snapshot().notifications(), 0);
+    assert_eq!(exit.reactor_snapshot().idle_returns(), 1);
 }
 
 #[test]
