@@ -7,7 +7,7 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.0.1-rc.1"
+version = "0.0.1-rc.2"
 edition = "2024"
 rust-version = "1.88"
 authors = ["zsumz <shawn@zsumz.com>"]
@@ -16,7 +16,7 @@ repository = "https://github.com/zsumz/calandria"
 homepage = "https://github.com/zsumz/calandria"
 
 [workspace.dependencies]
-calandria = { version = "=0.0.1-rc.1", path = "crates/calandria", default-features = false }
+calandria = { version = "=0.0.1-rc.2", path = "crates/calandria", default-features = false }
 mio = { version = "1.2.2", default-features = false, features = ["os-poll"] }
 
 [workspace.lints.rust]

@@ -8,7 +8,7 @@ ownership.
 
 ```toml
 [dependencies]
-calandria = "=0.0.1-rc.1"
+calandria = "=0.0.1-rc.2"
 ```
 
 ```rust

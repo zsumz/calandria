@@ -36,7 +36,7 @@ features = ["std"]
 [package.dependency.source]
 kind = "workspace-member"
 directory = "crates/calandria"
-requirement = "=0.0.1-rc.1"
+requirement = "=0.0.1-rc.2"
 
 [[package.dependency]]
 alias = "mio"
@@ -83,4 +83,4 @@ features = ["alloc"]
 [package.dependency.source]
 kind = "workspace-member"
 directory = "crates/calandria"
-requirement = "=0.0.1-rc.1"
+requirement = "=0.0.1-rc.2"

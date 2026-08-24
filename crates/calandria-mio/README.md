@@ -7,8 +7,8 @@ translation between backend tokens and Calandria resource identities.
 
 ```toml
 [dependencies]
-calandria = "=0.0.1-rc.1"
-calandria-mio = "=0.0.1-rc.1"
+calandria = "=0.0.1-rc.2"
+calandria-mio = "=0.0.1-rc.2"
 ```
 
 The concrete reactor continues to own its sources, resource table, readiness

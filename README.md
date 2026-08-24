@@ -51,9 +51,9 @@ poller, resources, I/O progress, protocol state, fairness, and shutdown policy.
 
 ```toml
 [dependencies]
-calandria = "=0.0.1-rc.1"
-calandria-mio = "=0.0.1-rc.1"
-calandria-sim = "=0.0.1-rc.1"
+calandria = "=0.0.1-rc.2"
+calandria-mio = "=0.0.1-rc.2"
+calandria-sim = "=0.0.1-rc.2"
 ```
 
 Run the bounded single-owner example from a checkout:
@@ -75,7 +75,7 @@ This is the complete gate for formatting, feature combinations, tests,
 examples, Clippy, rustdoc, package contents, source shape, zrail architecture,
 and clean diffs.
 
-Calandria requires Rust 1.88 or newer. `0.0.1-rc.1` is a release candidate.
+Calandria requires Rust 1.88 or newer. `0.0.1-rc.2` is a release candidate.
 
 ## License
 

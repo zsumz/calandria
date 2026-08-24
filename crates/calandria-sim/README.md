@@ -8,8 +8,8 @@ wall time, real I/O, or ambient entropy.
 
 ```toml
 [dependencies]
-calandria = "=0.0.1-rc.1"
-calandria-sim = "=0.0.1-rc.1"
+calandria = "=0.0.1-rc.2"
+calandria-sim = "=0.0.1-rc.2"
 ```
 
 Production and simulation share the same `Duty`, `Turn`, time, and lifecycle
