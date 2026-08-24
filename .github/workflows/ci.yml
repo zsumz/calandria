@@ -27,7 +27,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Set up zrail
-        uses: zactionsz/setup-zrail@9b0d4b677b1f5e138d63e11bb1f67bb8716ed5d9
+        uses: zactionsz/setup-zrail@1c852b17f3c0a6548a68b0f58f927e19bf3dcacc
         with:
           version: "0.0.2"
           sha256: fb535cf8a72cf15995f0c4d2ea640629624b300736c67c7961e058f4a12419d9
