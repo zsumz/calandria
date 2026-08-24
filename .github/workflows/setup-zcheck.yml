@@ -1,0 +1,34 @@
+name: setup-zcheck integration
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/setup-zcheck.yml
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/setup-zcheck.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: setup-zcheck integration
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Set up zcheck
+        uses: zactionsz/setup-zcheck@88ca70422145efd6ab7f4262fb096ecd16372f57
+        with:
+          version: "0.0.2"
+          sha256: a9e3ca964b6f5e86c693edeff4aeaddb46ee9d62f8713d3ded0bb6533b758e53
+
+      - name: Validate the repository qualification manifest
+        run: zcheck validate
