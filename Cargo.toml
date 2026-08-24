@@ -25,6 +25,7 @@ missing_debug_implementations = "warn"
 missing_docs = "warn"
 unreachable_pub = "warn"
 unused_lifetimes = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(calandria_loom)"] }
 
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }

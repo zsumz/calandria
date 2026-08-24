@@ -1,11 +1,11 @@
 //! Construction of one bounded mailbox ownership pair.
 
-use std::{
-    marker::PhantomData,
+use std::marker::PhantomData;
+
+use crate::{
+    Retained, RetainedBytes, WakeHandle,
     sync::{Arc, Mutex},
 };
-
-use crate::{Retained, RetainedBytes, WakeHandle};
 
 use super::{
     MailboxLimits, MailboxReceiver, MailboxSender,

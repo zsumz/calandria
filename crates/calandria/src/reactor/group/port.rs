@@ -1,8 +1,8 @@
 //! Linearized bounded typed ingress for a static reactor topology.
 
-use std::{num::NonZeroUsize, sync::Arc};
+use std::num::NonZeroUsize;
 
-use crate::{Lane, MailboxSender, MailboxSnapshot, RetainedBytes};
+use crate::{Lane, MailboxSender, MailboxSnapshot, RetainedBytes, sync::Arc};
 
 use super::{ReactorGroupSendError, ReactorGroupSendFailure, ReactorId, admission::Shared};
 

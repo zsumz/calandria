@@ -1,11 +1,11 @@
 //! Cloneable producer side of the bounded reactor mailbox.
 
-use std::{
-    fmt,
+use std::fmt;
+
+use crate::{
+    RetainedBytes,
     sync::{Arc, atomic::Ordering},
 };
-
-use crate::RetainedBytes;
 
 use super::{AdmissionFailure, Lane, MailboxSnapshot, TrySendError, shared::Shared};
 

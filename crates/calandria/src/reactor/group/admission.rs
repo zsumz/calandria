@@ -1,14 +1,15 @@
 //! Atomic group admission phase with independent per-shard publication fences.
 
-use std::{
-    num::NonZeroUsize,
+use std::num::NonZeroUsize;
+
+use crate::{
+    MailboxSender,
     sync::{
         Mutex, MutexGuard,
         atomic::{AtomicBool, Ordering},
+        recover_poison,
     },
 };
-
-use crate::MailboxSender;
 
 pub(super) struct Shared<T> {
     pub(super) reactors: NonZeroUsize,
@@ -56,8 +57,6 @@ impl<T> Shard<T> {
     }
 
     pub(super) fn lock(&self) -> MutexGuard<'_, ()> {
-        self.admission
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.admission.lock().unwrap_or_else(recover_poison)
     }
 }

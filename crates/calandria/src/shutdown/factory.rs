@@ -1,6 +1,8 @@
 //! Construction of one bounded shutdown authority pair.
 
-use std::{num::NonZeroUsize, sync::Arc};
+use std::num::NonZeroUsize;
+
+use crate::sync::Arc;
 
 use super::{ShutdownCompleter, ShutdownRequester, shared::Shared};
 

@@ -1,6 +1,6 @@
 //! One-shot start or abort gate for ownership-safe group startup.
 
-use std::sync::{Arc, Condvar, Mutex, MutexGuard};
+use crate::sync::{Arc, Condvar, Mutex, MutexGuard, recover_poison};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum StartDecision {
@@ -38,7 +38,7 @@ impl StartGate {
                 .shared
                 .decided
                 .wait(decision)
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+                .unwrap_or_else(recover_poison);
         }
         decision.unwrap_or_else(|| panic!("reactor group start decision disappeared"))
     }
@@ -59,8 +59,6 @@ struct Shared {
 
 impl Shared {
     fn lock(&self) -> MutexGuard<'_, Option<StartDecision>> {
-        self.decision
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.decision.lock().unwrap_or_else(recover_poison)
     }
 }

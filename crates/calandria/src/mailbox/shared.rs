@@ -1,15 +1,15 @@
 //! Shared mailbox state protected by the publication and acknowledgement lock.
 
-use std::{
-    collections::VecDeque,
-    num::NonZeroUsize,
+use std::{collections::VecDeque, num::NonZeroUsize};
+
+use crate::{
+    RetainedBytes, WakeHandle,
     sync::{
         Mutex, MutexGuard,
         atomic::{AtomicU64, Ordering},
+        recover_poison,
     },
 };
-
-use crate::{RetainedBytes, WakeHandle};
 
 use super::{Lane, LaneSnapshot, MailboxLimits, MailboxSnapshot};
 
@@ -23,9 +23,7 @@ pub(super) struct Shared<T> {
 
 impl<T> Shared<T> {
     pub(super) fn lock(&self) -> MutexGuard<'_, State<T>> {
-        self.state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.state.lock().unwrap_or_else(recover_poison)
     }
 
     pub(super) fn snapshot(&self) -> MailboxSnapshot {
@@ -138,7 +136,7 @@ pub(super) struct Counters {
 }
 
 impl Counters {
-    pub(super) const fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             control: LaneCounters::new(),
             work: LaneCounters::new(),
@@ -169,7 +167,7 @@ pub(super) struct LaneCounters {
 }
 
 impl LaneCounters {
-    const fn new() -> Self {
+    fn new() -> Self {
         Self {
             messages: AtomicU64::new(0),
             bytes: AtomicU64::new(0),

@@ -1,8 +1,8 @@
 //! Cloneable authority for bounded shutdown observation and first request publication.
 
-use std::{fmt, sync::Arc};
+use std::fmt;
 
-use crate::{Completer, Completion, completion};
+use crate::{Completer, Completion, completion, sync::Arc};
 
 use super::{
     ShutdownSubscribeError,

@@ -9,6 +9,8 @@ mod owner;
 mod runner;
 mod snapshot;
 mod spawn_error;
+#[cfg(all(test, calandria_loom))]
+mod sync_test;
 mod termination;
 
 pub use exit::ReactorExit;

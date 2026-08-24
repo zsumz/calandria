@@ -1,12 +1,11 @@
 //! Coalesced cross-thread notification for reactor progress.
 
-use std::{
-    fmt, io,
-    sync::{
-        Arc,
-        atomic::{AtomicU8, Ordering},
-    },
-    thread,
+use std::{fmt, io};
+
+use crate::sync::{
+    Arc,
+    atomic::{AtomicU8, Ordering},
+    spin_loop, yield_now,
 };
 
 const IDLE: u8 = 0;
@@ -79,9 +78,9 @@ impl WakeHandle {
                 WAKING | WAKING_ACKNOWLEDGED => {
                     if spins < SPIN_LIMIT {
                         spins += 1;
-                        std::hint::spin_loop();
+                        spin_loop();
                     } else {
-                        thread::yield_now();
+                        yield_now();
                     }
                 }
                 _ => panic!("wake phase invariant violated"),

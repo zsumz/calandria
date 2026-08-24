@@ -1,8 +1,8 @@
 //! Unique consumer side of the bounded reactor mailbox.
 
-use std::{cell::Cell, fmt, marker::PhantomData, num::NonZeroUsize, sync::Arc};
+use std::{cell::Cell, fmt, marker::PhantomData, num::NonZeroUsize};
 
-use crate::WakeHandle;
+use crate::{WakeHandle, sync::Arc};
 
 use super::{DrainReport, DrainStatus, MailboxSnapshot, shared::Shared};
 

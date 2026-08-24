@@ -13,6 +13,7 @@ cargo check -p calandria --no-default-features --features alloc --lib --locked
 cargo check -p calandria-sim --lib --locked
 cargo check -p calandria-mio --lib --locked
 cargo test --workspace --all-targets --all-features --locked
+scripts/check-loom
 cargo run -p calandria --example checksum_service --all-features --locked
 cargo run -p calandria --example authoritative_time --all-features --locked
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings

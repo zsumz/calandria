@@ -2,11 +2,13 @@
 
 use std::{
     mem,
-    sync::{Arc, Condvar, Mutex, MutexGuard},
     task::{Context, Poll, Waker},
 };
 
-use crate::retained::RetainedBytes;
+use crate::{
+    retained::RetainedBytes,
+    sync::{Arc, Condvar, Mutex, MutexGuard, recover_poison},
+};
 
 use super::CompletionError;
 
@@ -159,17 +161,11 @@ impl<T> Shared<T> {
     }
 
     fn lock(&self) -> MutexGuard<'_, State<T>> {
-        self.inner
-            .state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.inner.state.lock().unwrap_or_else(recover_poison)
     }
 
     fn wait_until_ready<'a>(&self, state: MutexGuard<'a, State<T>>) -> MutexGuard<'a, State<T>> {
-        self.inner
-            .ready
-            .wait(state)
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.inner.ready.wait(state).unwrap_or_else(recover_poison)
     }
 }
 

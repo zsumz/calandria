@@ -1,8 +1,9 @@
 //! Linearized external termination state for one reactor owner.
 
-use std::sync::{Arc, Mutex, MutexGuard};
-
-use crate::WakeHandle;
+use crate::{
+    WakeHandle,
+    sync::{Arc, Mutex, MutexGuard, recover_poison},
+};
 
 use super::{ReactorTermination, ReactorTerminationStatus};
 
@@ -113,9 +114,7 @@ struct Shared {
 
 impl Shared {
     fn lock(&self) -> MutexGuard<'_, Phase> {
-        self.phase
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.phase.lock().unwrap_or_else(recover_poison)
     }
 }
 

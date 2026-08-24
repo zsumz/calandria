@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RUSTFLAGS="--cfg calandria_loom -D warnings" cargo test -p calandria --lib --locked

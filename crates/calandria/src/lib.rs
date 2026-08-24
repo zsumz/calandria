@@ -29,6 +29,10 @@ pub mod resource;
 pub mod retained;
 #[cfg(feature = "std")]
 pub mod shutdown;
+#[cfg(feature = "std")]
+mod sync;
+#[cfg(all(feature = "std", test, calandria_loom))]
+mod sync_test;
 pub mod time;
 #[cfg(feature = "alloc")]
 pub mod timer;

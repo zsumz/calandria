@@ -12,6 +12,8 @@ mod send_error;
 mod spawn;
 mod spawn_error;
 mod supervisor;
+#[cfg(all(test, calandria_loom))]
+mod sync_test;
 mod termination;
 mod worker;
 

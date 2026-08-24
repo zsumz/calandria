@@ -1,6 +1,8 @@
 //! Unique terminal authority for one shutdown barrier.
 
-use std::{fmt, sync::Arc};
+use std::fmt;
+
+use crate::sync::Arc;
 
 use super::shared::{Phase, Shared};
 

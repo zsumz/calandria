@@ -1,12 +1,11 @@
 //! Shared phase and bounded subscriber ownership for a shutdown barrier.
 
-use std::{
-    mem,
-    num::NonZeroUsize,
-    sync::{Condvar, Mutex, MutexGuard},
-};
+use std::{mem, num::NonZeroUsize};
 
-use crate::Completer;
+use crate::{
+    Completer,
+    sync::{Condvar, Mutex, MutexGuard, recover_poison},
+};
 
 pub(super) struct Shared {
     capacity: usize,
@@ -58,15 +57,11 @@ impl Shared {
     }
 
     pub(super) fn lock(&self) -> MutexGuard<'_, State> {
-        self.state
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.state.lock().unwrap_or_else(recover_poison)
     }
 
     pub(super) fn wait<'a>(&self, state: MutexGuard<'a, State>) -> MutexGuard<'a, State> {
-        self.changed
-            .wait(state)
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        self.changed.wait(state).unwrap_or_else(recover_poison)
     }
 
     pub(super) fn finish_request_success(&self, completer: Completer<()>) -> RequestSuccess {
