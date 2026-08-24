@@ -90,6 +90,12 @@ fn poll_report_rejects_impossible_wake_accounting() {
 }
 
 #[test]
+#[should_panic(expected = "poll report observation count overflowed")]
+fn poll_report_rejects_observation_count_overflow() {
+    let _ = PollReport::new(usize::MAX, 0, 1, false);
+}
+
+#[test]
 fn poll_events_are_fixed_capacity_and_ownership_preserving() {
     let token = ResourceToken::new(
         ResourceOwnerId::new(7),

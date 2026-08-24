@@ -19,6 +19,7 @@ fn earliest_deadline_wins_over_indefinite_wait() {
     let earlier = Next::WakeOr(Deadline::at(Moment::from_nanos(10)));
 
     assert_eq!(later.merge(Next::Wake).merge(earlier), earlier);
+    assert_eq!(earlier.merge(later), earlier);
     assert_eq!(
         earlier.bounded_wait(Moment::from_nanos(3), Span::from_nanos(100)),
         Span::from_nanos(7)

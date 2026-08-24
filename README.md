@@ -68,7 +68,7 @@ policy. Ownership, limits, progress, and terminal states stay explicit.
 ## Qualification
 
 ```sh
-scripts/check
+zcheck
 ```
 
 This is the complete gate for formatting, feature combinations, tests,
