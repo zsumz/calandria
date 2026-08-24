@@ -61,6 +61,10 @@ fn target_and_time_validation_precede_timeline_admission() {
         event(3, 0),
         SendFailure::UnknownTarget(DutyId::new(99)),
     );
+    assert_eq!(
+        SendFailure::UnknownTarget(DutyId::new(99)).to_string(),
+        "unknown duty 99"
+    );
 
     let mut stopped = simulation(
         Scenario::TargetStopped,

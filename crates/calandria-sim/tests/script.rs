@@ -128,6 +128,17 @@ fn retained_byte_rejections_distinguish_overflow_from_capacity() {
     assert_eq!(error.failure(), ScriptBuildFailure::RetainedByteOverflow);
     assert_eq!(error.into_steps().len(), 1);
 
+    let overflow = vec![
+        ScriptStep::new(measured(1, u64::MAX), Plan::empty()),
+        ScriptStep::new(measured(2, 1), Plan::empty()),
+    ];
+    let limits = ScriptLimits::new(nonzero(2), nonzero(1), RetainedBytes::new(u64::MAX));
+    let Err(error) = ExactScript::<Measured, Measured>::try_new(limits, overflow) else {
+        panic!("retained bytes across steps must not wrap");
+    };
+    assert_eq!(error.failure(), ScriptBuildFailure::RetainedByteOverflow);
+    assert_eq!(error.into_steps().len(), 2);
+
     let capacity = vec![ScriptStep::new(
         measured(3, 2),
         Plan::single(Planned::new(Span::ZERO, measured(4, 3))),
