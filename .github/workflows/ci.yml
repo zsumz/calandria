@@ -33,11 +33,7 @@ jobs:
       - run: rustup toolchain install 1.96.0 --profile minimal
       - run: cargo +1.96.0 install zrail --version 0.0.2 --locked
       - run: rustup toolchain install 1.96.1 --profile minimal
-      - name: Set up zcheck
-        uses: zactionsz/setup-zcheck@88ca70422145efd6ab7f4262fb096ecd16372f57
-        with:
-          version: "0.0.2"
-          sha256: a9e3ca964b6f5e86c693edeff4aeaddb46ee9d62f8713d3ded0bb6533b758e53
+      - run: cargo +1.96.1 install zcheck --version 0.0.1 --locked
       - run: cargo fetch --locked
       - run: zcheck run check --format github
 
