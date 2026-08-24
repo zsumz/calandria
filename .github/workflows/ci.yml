@@ -31,9 +31,11 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup-rust
       - run: rustup toolchain install 1.96.0 --profile minimal
-      - run: cargo +1.96.0 install zrail --version 0.0.1 --locked
+      - run: cargo +1.96.0 install zrail --version 0.0.2 --locked
+      - run: rustup toolchain install 1.96.1 --profile minimal
+      - run: cargo +1.96.1 install zcheck --version 0.0.1 --locked
       - run: cargo fetch --locked
-      - run: scripts/check
+      - run: zcheck run check --format github
 
   portable:
     name: portable (${{ matrix.runner }})
