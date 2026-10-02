@@ -77,6 +77,18 @@ and clean diffs.
 
 Calandria requires Rust 1.88 or newer. `0.0.1-rc.2` is a release candidate.
 
+## Supported-release boundary
+
+The current candidate does not make a stable-release promise. A future supported
+line must preserve its public source API, documented ownership, bounded progress,
+lifecycle semantics, and Rust 1.88 MSRV across patch releases. Breaking changes
+require an explicitly announced new compatibility line.
+
+Core feature combinations, Mio readiness, and deterministic simulation retain
+separate contracts. Kafkars uses the `std` core and Mio adapter; passing simulation
+or portable dependency tests does not establish an application's real-broker
+support on another platform or backend.
+
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
